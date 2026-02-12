@@ -8,6 +8,9 @@
 - Click-to-open note navigation
 - Hover preview on cards
 - SVG render cache keyed by molecule string and current settings
+- Chunked async rendering (batches of 20 per frame) to avoid blocking the UI with 100+ molecules
+- CSS containment on cards for reduced layout cost
+- Event delegation for click and hover handlers
 
 ## SDF Import
 

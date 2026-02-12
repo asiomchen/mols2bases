@@ -6,6 +6,7 @@
 }
 
 .mol-card {
+  contain: layout style paint;
   --card-width: 200px;
   --card-height: 240px;
   width: var(--card-width);

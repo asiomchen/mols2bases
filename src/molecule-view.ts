@@ -51,6 +51,8 @@ export class MoleculeView extends BasesViewClass {
   private plugin: Mols2BasesPlugin;
   private gridEl: HTMLElement | null = null;
   private svgCache = new Map<string, string>();
+  private renderGeneration = 0;
+  private entryMap = new WeakMap<HTMLElement, BasesEntry>();
 
   constructor(controller: QueryController, containerEl: HTMLElement, plugin: Mols2BasesPlugin) {
     super(controller);
@@ -97,6 +99,30 @@ export class MoleculeView extends BasesViewClass {
 
   onload(): void {
     this.gridEl = this.containerEl.createDiv({ cls: 'mol-grid' });
+
+    // Event delegation: single click listener for all cards
+    this.gridEl.addEventListener('click', (evt) => {
+      const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
+      if (!card) return;
+      const entry = this.entryMap.get(card);
+      if (entry) this.plugin.app.workspace.getLeaf(false).openFile(entry.file);
+    });
+
+    // Event delegation: single mouseover listener for hover previews
+    this.gridEl.addEventListener('mouseover', (evt) => {
+      const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
+      if (!card) return;
+      const entry = this.entryMap.get(card);
+      if (entry) {
+        this.plugin.app.workspace.trigger('hover-link', {
+          event: evt,
+          source: VIEW_TYPE_MOLECULES,
+          hoverParent: card,
+          targetEl: card,
+          linktext: entry.file.path,
+        });
+      }
+    });
   }
 
   onunload(): void {
@@ -110,6 +136,8 @@ export class MoleculeView extends BasesViewClass {
   async onDataUpdated(): Promise<void> {
     if (!this.gridEl) return;
     this.gridEl.empty();
+
+    const generation = ++this.renderGeneration;
 
     const molPropId = this.config.getAsPropertyId(CONFIG_KEYS.MOLECULE_PROPERTY);
     const labelPropId = this.config.getAsPropertyId(CONFIG_KEYS.LABEL_PROPERTY);
@@ -136,46 +164,63 @@ export class MoleculeView extends BasesViewClass {
     }
 
     const entries = this.data.data;
-    for (const entry of entries) {
-      const molValue = entry.getValue(molPropId);
-      const molStr = typeof molValue === 'string' ? molValue : String(molValue ?? '');
-      const labelValue = labelPropId ? entry.getValue(labelPropId) : null;
-      const label = labelValue != null ? String(labelValue) : entry.file.basename;
+    const BATCH_SIZE = 20;
 
-      const card = this.gridEl.createDiv({ cls: 'mol-card' });
-      card.style.setProperty('--card-width', `${cardWidth}px`);
-      card.style.setProperty('--card-height', `${cardHeight}px`);
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+      if (this.renderGeneration !== generation) return;
 
-      // Click to open note
-      card.addEventListener('click', () => {
-        this.plugin.app.workspace.getLeaf(false).openFile(entry.file);
-      });
+      const batch = entries.slice(i, i + BATCH_SIZE);
+      const fragment = document.createDocumentFragment();
 
-      // Hover preview
-      card.addEventListener('mouseover', (evt) => {
-        this.plugin.app.workspace.trigger('hover-link', {
-          event: evt,
-          source: VIEW_TYPE_MOLECULES,
-          hoverParent: card,
-          targetEl: card,
-          linktext: entry.file.path,
-        });
-      });
+      for (const entry of batch) {
+        const molValue = entry.getValue(molPropId);
+        const molStr = typeof molValue === 'string' ? molValue : String(molValue ?? '');
+        const labelValue = labelPropId ? entry.getValue(labelPropId) : null;
+        const label = labelValue != null ? String(labelValue) : entry.file.basename;
 
-      const svgContainer = card.createDiv({ cls: 'mol-card-svg' });
+        const card = document.createElement('div');
+        card.className = 'mol-card';
+        card.style.setProperty('--card-width', `${cardWidth}px`);
+        card.style.setProperty('--card-height', `${cardHeight}px`);
 
-      if (!molStr.trim()) {
-        svgContainer.createDiv({ cls: 'mol-card-error', text: 'No molecule data' });
-      } else {
-        const svg = this.renderMolecule(rdkit, molStr);
-        if (svg) {
-          svgContainer.innerHTML = svg;
+        this.entryMap.set(card, entry);
+
+        const svgContainer = document.createElement('div');
+        svgContainer.className = 'mol-card-svg';
+
+        if (!molStr.trim()) {
+          const err = document.createElement('div');
+          err.className = 'mol-card-error';
+          err.textContent = 'No molecule data';
+          svgContainer.appendChild(err);
         } else {
-          svgContainer.createDiv({ cls: 'mol-card-error', text: 'Invalid molecule' });
+          const svg = this.renderMolecule(rdkit, molStr);
+          if (svg) {
+            svgContainer.innerHTML = svg;
+          } else {
+            const err = document.createElement('div');
+            err.className = 'mol-card-error';
+            err.textContent = 'Invalid molecule';
+            svgContainer.appendChild(err);
+          }
         }
+
+        card.appendChild(svgContainer);
+
+        const labelEl = document.createElement('div');
+        labelEl.className = 'mol-card-label';
+        labelEl.textContent = label;
+        card.appendChild(labelEl);
+
+        fragment.appendChild(card);
       }
 
-      card.createDiv({ cls: 'mol-card-label', text: label });
+      this.gridEl.appendChild(fragment);
+
+      // Yield to browser between batches
+      if (i + BATCH_SIZE < entries.length) {
+        await new Promise<void>(r => requestAnimationFrame(() => r()));
+      }
     }
   }
 
