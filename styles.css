@@ -50,6 +50,10 @@
   border-top: 1px solid var(--background-modifier-border);
 }
 
+.mol-card-svg[data-mol] {
+  background: var(--background-secondary);
+}
+
 .mol-card-error {
   color: var(--text-error);
   font-size: var(--font-ui-smaller);

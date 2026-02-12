@@ -8,7 +8,8 @@
 - Click-to-open note navigation
 - Hover preview on cards
 - SVG render cache keyed by molecule string and current settings
-- Chunked async rendering (batches of 20 per frame) to avoid blocking the UI with 100+ molecules
+- Lazy viewport-based rendering via IntersectionObserver — only calls RDKit for molecules visible (or near-visible) on screen; configurable via `lazyRender` setting (default on), falls back to chunked eager rendering when off
+- Chunked async rendering (batches of 20 per frame) to avoid blocking the UI with 100+ molecules (used when lazy render is off)
 - CSS containment on cards for reduced layout cost
 - Event delegation for click and hover handlers
 

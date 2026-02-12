@@ -48,5 +48,17 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName('Lazy render molecules')
+      .setDesc('Only render molecule images when they scroll into view. Improves performance for large datasets.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.lazyRender)
+          .onChange(async (value) => {
+            this.plugin.settings.lazyRender = value;
+            await this.plugin.saveSettings();
+          }),
+      );
   }
 }

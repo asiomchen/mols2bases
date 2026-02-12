@@ -9,12 +9,14 @@ export interface Mols2BasesSettings {
   removeHs: boolean;
   useCoords: boolean;
   storeMolblock: boolean;
+  lazyRender: boolean;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   removeHs: false,
   useCoords: true,
   storeMolblock: true,
+  lazyRender: true,
 };
 
 export const CONFIG_KEYS = {
