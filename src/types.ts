@@ -6,15 +6,15 @@ export interface ParsedMolecule {
 export const VIEW_TYPE_MOLECULES = 'molecules';
 
 export interface Mols2BasesSettings {
-  explicitHydrogens: boolean;
+  removeHs: boolean;
+  useCoords: boolean;
   storeMolblock: boolean;
-  coordinateMode: 'as-is' | '2d-only';
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
-  explicitHydrogens: false,
+  removeHs: false,
+  useCoords: true,
   storeMolblock: true,
-  coordinateMode: 'as-is',
 };
 
 export const CONFIG_KEYS = {

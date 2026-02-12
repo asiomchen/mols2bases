@@ -181,8 +181,8 @@ export class MoleculeView extends BasesViewClass {
 
   private renderMolecule(rdkit: RDKitModule, molStr: string): string | null {
     // Build cache key incorporating settings
-    const { explicitHydrogens, coordinateMode } = this.plugin.settings;
-    const cacheKey = `${molStr}||eh=${explicitHydrogens}||cm=${coordinateMode}`;
+    const { removeHs, useCoords } = this.plugin.settings;
+    const cacheKey = `${molStr}||rh=${removeHs}||uc=${useCoords}`;
 
     const cached = this.svgCache.get(cacheKey);
     if (cached) return cached;
@@ -193,13 +193,13 @@ export class MoleculeView extends BasesViewClass {
       mol = rdkit.get_mol(molStr);
       if (!mol || !mol.is_valid()) return null;
 
-      if (coordinateMode === '2d-only') {
+      if (!useCoords) {
         mol.set_new_coords();
       }
 
-      if (explicitHydrogens) {
-        const molblockWithHs = mol.add_hs();
-        renderMol = rdkit.get_mol(molblockWithHs);
+      if (removeHs) {
+        const molblockNoHs = mol.remove_hs();
+        renderMol = rdkit.get_mol(molblockNoHs);
         if (!renderMol || !renderMol.is_valid()) return null;
       }
 

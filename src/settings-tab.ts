@@ -14,13 +14,25 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName('Show explicit hydrogens')
-      .setDesc('Render molecules with all hydrogen atoms visible.')
+      .setName('Remove hydrogens')
+      .setDesc('Strip hydrogen atoms from molecules before rendering.')
       .addToggle((toggle) =>
         toggle
-          .setValue(this.plugin.settings.explicitHydrogens)
+          .setValue(this.plugin.settings.removeHs)
           .onChange(async (value) => {
-            this.plugin.settings.explicitHydrogens = value;
+            this.plugin.settings.removeHs = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName('Use original coordinates')
+      .setDesc('Use coordinates from the input data. When off, generates clean 2D layouts.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.useCoords)
+          .onChange(async (value) => {
+            this.plugin.settings.useCoords = value;
             await this.plugin.saveSettings();
           }),
       );
@@ -33,20 +45,6 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.storeMolblock)
           .onChange(async (value) => {
             this.plugin.settings.storeMolblock = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName('Coordinate mode')
-      .setDesc('How to handle molecule coordinates for rendering.')
-      .addDropdown((dropdown) =>
-        dropdown
-          .addOption('as-is', 'As-is')
-          .addOption('2d-only', '2D only')
-          .setValue(this.plugin.settings.coordinateMode)
-          .onChange(async (value) => {
-            this.plugin.settings.coordinateMode = value as 'as-is' | '2d-only';
             await this.plugin.saveSettings();
           }),
       );
