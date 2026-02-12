@@ -62,8 +62,9 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
       // Build frontmatter
       const frontmatter: Record<string, string> = {};
       if (smiles) frontmatter['smiles'] = smiles;
-      // Store molblock as a multiline YAML string
-      frontmatter['molblock'] = mol.molblock;
+      if (plugin.settings.storeMolblock) {
+        frontmatter['molblock'] = mol.molblock;
+      }
 
       // Add all SDF properties
       for (const [key, value] of Object.entries(mol.properties)) {

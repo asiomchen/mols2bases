@@ -11,6 +11,8 @@ export interface RDKitMol {
   get_svg_with_highlights(details: string): string;
   is_valid(): boolean;
   get_smiles(): string;
+  add_hs(): string;
+  set_new_coords(useCoordGen?: boolean): boolean;
   delete(): void;
 }
 

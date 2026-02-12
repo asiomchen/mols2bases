@@ -1,6 +1,6 @@
-import { Plugin } from 'obsidian';
 import { getRDKit, RDKitModule } from './rdkit-loader';
 import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
+import type Mols2BasesPlugin from './main';
 
 // Obsidian Bases types (not yet in the public typings)
 interface BasesViewOption {
@@ -48,11 +48,11 @@ const { BasesView: BasesViewClass } = require('obsidian') as { BasesView: typeof
 
 export class MoleculeView extends BasesViewClass {
   private containerEl: HTMLElement;
-  private plugin: Plugin;
+  private plugin: Mols2BasesPlugin;
   private gridEl: HTMLElement | null = null;
   private svgCache = new Map<string, string>();
 
-  constructor(controller: QueryController, containerEl: HTMLElement, plugin: Plugin) {
+  constructor(controller: QueryController, containerEl: HTMLElement, plugin: Mols2BasesPlugin) {
     super(controller);
     this.containerEl = containerEl;
     this.plugin = plugin;
@@ -180,20 +180,36 @@ export class MoleculeView extends BasesViewClass {
   }
 
   private renderMolecule(rdkit: RDKitModule, molStr: string): string | null {
-    // Check cache
-    const cached = this.svgCache.get(molStr);
+    // Build cache key incorporating settings
+    const { explicitHydrogens, coordinateMode } = this.plugin.settings;
+    const cacheKey = `${molStr}||eh=${explicitHydrogens}||cm=${coordinateMode}`;
+
+    const cached = this.svgCache.get(cacheKey);
     if (cached) return cached;
 
     let mol = null;
+    let renderMol = null;
     try {
       mol = rdkit.get_mol(molStr);
       if (!mol || !mol.is_valid()) return null;
-      const svg = mol.get_svg();
-      this.svgCache.set(molStr, svg);
+
+      if (coordinateMode === '2d-only') {
+        mol.set_new_coords();
+      }
+
+      if (explicitHydrogens) {
+        const molblockWithHs = mol.add_hs();
+        renderMol = rdkit.get_mol(molblockWithHs);
+        if (!renderMol || !renderMol.is_valid()) return null;
+      }
+
+      const svg = (renderMol ?? mol).get_svg();
+      this.svgCache.set(cacheKey, svg);
       return svg;
     } catch {
       return null;
     } finally {
+      if (renderMol) renderMol.delete();
       if (mol) mol.delete();
     }
   }
