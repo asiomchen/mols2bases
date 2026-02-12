@@ -1,6 +1,7 @@
 import { Plugin } from 'obsidian';
 import { MoleculeView } from './molecule-view';
 import { importSdf } from './sdf-import';
+import { importCsv } from './csv-import';
 import { cleanupRDKit } from './rdkit-loader';
 import { VIEW_TYPE_MOLECULES, DEFAULT_SETTINGS } from './types';
 import type { Mols2BasesSettings } from './types';
@@ -23,6 +24,12 @@ export default class Mols2BasesPlugin extends Plugin {
       id: 'import-sdf',
       name: 'Import SDF file',
       callback: () => importSdf(this),
+    });
+
+    this.addCommand({
+      id: 'import-csv',
+      name: 'Import CSV file',
+      callback: () => importCsv(this),
     });
 
     this.addSettingTab(new Mols2BasesSettingTab(this.app, this));
