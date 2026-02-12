@@ -65,6 +65,7 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
       if (plugin.settings.storeMolblock) {
         frontmatter['molblock'] = mol.molblock;
       }
+      frontmatter['_mols2bases'] = `[[${baseName}.base]]`;
 
       // Add all SDF properties
       for (const [key, value] of Object.entries(mol.properties)) {
@@ -83,7 +84,7 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     }
 
     // Create .base file
-    const baseContent = buildBaseFile(folderPath);
+    const baseContent = buildBaseFile(`${folderPath}.base`);
     const basePath = normalizePath(`${folderPath}.base`);
     const baseFile = await plugin.app.vault.create(basePath, baseContent);
 
@@ -145,21 +146,16 @@ function buildYaml(props: Record<string, string>): string {
   return lines.join('\n') + '\n';
 }
 
-function buildBaseFile(folderPath: string): string {
-  return `filter:
-  - operator: "and"
-    conditions:
-      - field: "folder"
-        operator: "equals"
-        value: "${folderPath}"
+function buildBaseFile(baseName: string): string {
+  return `filters:
+  and:
+    - file.hasLink("${baseName}")
 views:
-  - type: "table"
-    name: "Table"
   - type: "molecules"
     name: "Molecules"
-    config:
-      moleculeProperty: "smiles"
-      labelProperty: "name"
+    moleculeProperty: note.smiles
+  - type: "table"
+    name: "Table"
 `;
 }
 
