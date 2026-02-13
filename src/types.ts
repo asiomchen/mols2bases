@@ -28,4 +28,7 @@ export const CONFIG_KEYS = {
   LABEL_PROPERTY: 'labelProperty',
   CARD_WIDTH: 'cardWidth',
   CARD_HEIGHT: 'cardHeight',
+  TOOLTIP_ENABLED: 'tooltipEnabled',
+  TOOLTIP_MOLECULE_SIZE: 'tooltipMoleculeSize',
+  TOOLTIP_PROPERTIES: 'tooltipProperties',
 } as const;

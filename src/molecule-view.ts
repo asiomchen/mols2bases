@@ -30,6 +30,9 @@ export class MoleculeView extends BasesView {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private rdkitRef: RDKitModule | null = null;
 
+  private tooltipEl: HTMLElement | null = null;
+  private tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
+
   constructor(controller: QueryController, containerEl: HTMLElement, plugin: Mols2BasesPlugin) {
     super(controller);
     this.containerEl = containerEl;
@@ -67,6 +70,27 @@ export class MoleculeView extends BasesView {
         max: 500,
         step: 10,
         default: 240,
+      },
+      {
+        type: 'toggle',
+        key: CONFIG_KEYS.TOOLTIP_ENABLED,
+        displayName: 'Enable tooltip',
+        default: true,
+      },
+      {
+        type: 'slider',
+        key: CONFIG_KEYS.TOOLTIP_MOLECULE_SIZE,
+        displayName: 'Tooltip molecule size',
+        min: 200,
+        max: 600,
+        step: 50,
+        default: 400,
+      },
+      {
+        type: 'text',
+        key: CONFIG_KEYS.TOOLTIP_PROPERTIES,
+        displayName: 'Tooltip properties (comma-separated)',
+        default: '',
       },
     ];
   }
@@ -109,6 +133,10 @@ export class MoleculeView extends BasesView {
     // Grid
     this.gridEl = this.containerEl.createDiv({ cls: 'mol-grid' });
 
+    // Create tooltip element (initially hidden)
+    this.tooltipEl = this.containerEl.createDiv({ cls: 'mol-tooltip' });
+    this.tooltipEl.style.display = 'none';
+
     // Event delegation: single click listener for all cards
     this.gridEl.addEventListener('click', (evt) => {
       const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
@@ -117,20 +145,22 @@ export class MoleculeView extends BasesView {
       if (entry) this.plugin.app.workspace.getLeaf(false).openFile(entry.file);
     });
 
-    // Event delegation: single mouseover listener for hover previews
+    // Event delegation: tooltip on hover
     this.gridEl.addEventListener('mouseover', (evt) => {
       const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
       if (!card) return;
-      const entry = this.entryMap.get(card);
-      if (entry) {
-        this.plugin.app.workspace.trigger('hover-link', {
-          event: evt,
-          source: VIEW_TYPE_MOLECULES,
-          hoverParent: card,
-          targetEl: card,
-          linktext: entry.file.path,
-        });
+      if (this.tooltipTimeout) clearTimeout(this.tooltipTimeout);
+      this.tooltipTimeout = setTimeout(() => this.showTooltip(card), 300);
+    });
+
+    this.gridEl.addEventListener('mouseout', (evt) => {
+      const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
+      if (!card) return;
+      if (this.tooltipTimeout) {
+        clearTimeout(this.tooltipTimeout);
+        this.tooltipTimeout = null;
       }
+      this.hideTooltip();
     });
   }
 
@@ -141,6 +171,7 @@ export class MoleculeView extends BasesView {
     this.cardInfos = [];
     this.rdkitRef = null;
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    if (this.tooltipTimeout) clearTimeout(this.tooltipTimeout);
     if (this.searchBarEl) {
       this.searchBarEl.remove();
       this.searchBarEl = null;
@@ -148,6 +179,10 @@ export class MoleculeView extends BasesView {
     if (this.gridEl) {
       this.gridEl.remove();
       this.gridEl = null;
+    }
+    if (this.tooltipEl) {
+      this.tooltipEl.remove();
+      this.tooltipEl = null;
     }
   }
 
@@ -546,6 +581,129 @@ export class MoleculeView extends BasesView {
     } finally {
       if (renderMol) renderMol.delete();
       if (mol) mol.delete();
+    }
+  }
+
+  private getTooltipEnabled(): boolean {
+    return (this.config.get(CONFIG_KEYS.TOOLTIP_ENABLED) as boolean) ?? true;
+  }
+
+  private getTooltipMoleculeSize(): number {
+    return (this.config.get(CONFIG_KEYS.TOOLTIP_MOLECULE_SIZE) as number) ?? 400;
+  }
+
+  private getTooltipProperties(): string[] {
+    const propStr = (this.config.get(CONFIG_KEYS.TOOLTIP_PROPERTIES) as string) ?? '';
+    if (!propStr.trim()) return [];
+    return propStr.split(',').map(p => p.trim()).filter(p => p.length > 0);
+  }
+
+  private async showTooltip(card: HTMLElement): Promise<void> {
+    if (!this.tooltipEl) return;
+    if (!this.getTooltipEnabled()) return;
+
+    const entry = this.entryMap.get(card);
+    if (!entry) return;
+
+    const info = this.cardInfos.find(i => i.entry === entry);
+    if (!info || !info.molStr.trim()) return;
+
+    const molPropId = this.config.getAsPropertyId(CONFIG_KEYS.MOLECULE_PROPERTY);
+    if (!molPropId) return;
+
+    const tooltipSize = this.getTooltipMoleculeSize();
+    const tooltipProps = this.getTooltipProperties();
+
+    let rdkit = this.rdkitRef;
+    if (!rdkit) {
+      try {
+        rdkit = await getRDKit(this.plugin);
+        this.rdkitRef = rdkit;
+      } catch {
+        return;
+      }
+    }
+
+    const cacheKey = `${info.molStr}||rh=${this.plugin.settings.removeHs}||uc=${this.plugin.settings.useCoords}||size=${tooltipSize}`;
+    let svg = this.svgCache.get(cacheKey);
+
+    if (!svg) {
+      let mol = null;
+      let renderMol = null;
+      try {
+        mol = rdkit!.get_mol(info.molStr);
+        if (!mol || !mol.is_valid()) return;
+
+        if (!this.plugin.settings.useCoords) {
+          mol.set_new_coords();
+        }
+
+        if (this.plugin.settings.removeHs) {
+          const molblockNoHs = mol.remove_hs();
+          renderMol = rdkit!.get_mol(molblockNoHs);
+          if (!renderMol || !renderMol.is_valid()) return;
+        }
+
+        svg = (renderMol ?? mol).get_svg();
+        if (svg) this.svgCache.set(cacheKey, svg);
+      } catch {
+        return;
+      } finally {
+        if (renderMol) renderMol.delete();
+        if (mol) mol.delete();
+      }
+    }
+
+    if (!svg) return;
+
+    const fm = this.plugin.app.metadataCache.getFileCache(entry.file)?.frontmatter;
+    let propsHtml = '';
+    if (fm && Object.keys(fm).length > 0) {
+      const keys = tooltipProps.length > 0 
+        ? tooltipProps.filter(k => k in fm)
+        : Object.keys(fm).filter(k => k !== 'position');
+      
+      if (keys.length > 0) {
+        propsHtml = '<div class="mol-tooltip-props">';
+        for (const key of keys) {
+          const val = fm[key];
+          if (val != null) {
+            propsHtml += `<div class="mol-tooltip-prop">
+              <span class="mol-tooltip-prop-key">${key}:</span>
+              <span class="mol-tooltip-prop-value">${String(val)}</span>
+            </div>`;
+          }
+        }
+        propsHtml += '</div>';
+      }
+    }
+
+    this.tooltipEl.innerHTML = `
+      <div class="mol-tooltip-svg" style="width: ${tooltipSize}px; height: ${tooltipSize}px;">${svg}</div>
+      ${propsHtml}
+    `;
+
+    const cardRect = card.getBoundingClientRect();
+    const containerRect = this.containerEl.getBoundingClientRect();
+    const tooltipRect = this.tooltipEl.getBoundingClientRect();
+
+    let left = cardRect.left - containerRect.left + (cardRect.width / 2) - (tooltipSize / 2);
+    let top = cardRect.bottom - containerRect.top + 8;
+
+    if (left < 0) left = 8;
+    if (left + tooltipSize > containerRect.width) left = containerRect.width - tooltipSize - 8;
+    if (top + tooltipSize + (propsHtml ? 150 : 0) > containerRect.height) {
+      top = cardRect.top - containerRect.top - tooltipSize - 8;
+    }
+
+    this.tooltipEl.style.left = `${left}px`;
+    this.tooltipEl.style.top = `${top}px`;
+    this.tooltipEl.style.display = 'block';
+  }
+
+  private hideTooltip(): void {
+    if (this.tooltipEl) {
+      this.tooltipEl.style.display = 'none';
     }
   }
 }

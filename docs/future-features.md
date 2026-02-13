@@ -22,7 +22,7 @@ Ideas inspired by mols2grid and adapted for the Obsidian Bases context. Grouped 
 ## Medium Priority
 
 ### Tooltip improvements
-- **Rich tooltip** — On hover/click, show a larger molecule rendering with all frontmatter properties listed. Configurable which properties appear.
+- **Rich tooltip** — On hover/click, show a larger molecule rendering with all frontmatter properties listed. Configurable per view which properties appear.
 - **Tooltip trigger setting** — Choose between hover, click, or off.
 
 ### Conditional styling
