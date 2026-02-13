@@ -62,6 +62,45 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('Bond line width')
+      .setDesc('Thickness of bonds in molecule depictions.')
+      .addText((text) =>
+        text
+          .setValue(String(this.plugin.settings.bondLineWidth))
+          .onChange(async (value) => {
+            const num = parseFloat(value);
+            if (!isNaN(num) && num > 0) {
+              this.plugin.settings.bondLineWidth = num;
+              await this.plugin.saveSettings();
+            }
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName('Transparent background')
+      .setDesc('Remove white background from molecule SVGs. Works better with dark themes.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.transparentBg)
+          .onChange(async (value) => {
+            this.plugin.settings.transparentBg = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName('Comic mode')
+      .setDesc('Hand-drawn style molecule rendering.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.comicMode)
+          .onChange(async (value) => {
+            this.plugin.settings.comicMode = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName('Highlight all SMARTS matches')
       .setDesc('Highlight all substructure matches in a molecule. When off, only the first match is highlighted.')
       .addToggle((toggle) =>

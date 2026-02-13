@@ -13,6 +13,9 @@ export interface Mols2BasesSettings {
   searchDelay: number;
   smartsMatchAll: boolean;
   alignOnSmarts: boolean;
+  bondLineWidth: number;
+  transparentBg: boolean;
+  comicMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
@@ -23,6 +26,9 @@ export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   searchDelay: 300,
   smartsMatchAll: false,
   alignOnSmarts: true,
+  bondLineWidth: 1.0,
+  transparentBg: false,
+  comicMode: false,
 };
 
 export const CONFIG_KEYS = {

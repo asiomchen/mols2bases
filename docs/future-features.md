@@ -33,10 +33,10 @@ Ideas inspired by mols2grid and adapted for the Obsidian Bases context. Grouped 
 - **Paginated mode** — Alternative to infinite scroll / lazy render. Show N cards per page with page navigation. Useful for very large datasets (1000+).
 - **Items per page setting** — Configurable page size (default 24).
 
-### Rendering options
-- **Bond line width** — Setting to control bond thickness in SVGs.
-- **Transparent background** — Option to render molecules with no background (works better with dark themes).
-- **Comic mode** — Fun hand-drawn style rendering (supported by RDKit's MolDrawOptions).
+### ~~Rendering options~~ ✅ Implemented
+- ~~**Bond line width** — Setting to control bond thickness in SVGs.~~
+- ~~**Transparent background** — Option to render molecules with no background (works better with dark themes).~~
+- ~~**Comic mode** — Fun hand-drawn style rendering (supported by RDKit's MolDrawOptions).~~
 
 ## Lower Priority
 
@@ -67,7 +67,7 @@ Ideas inspired by mols2grid and adapted for the Obsidian Bases context. Grouped 
 | `alignToQuery` | boolean | `false` | Align depictions to SMARTS query |
 | `showTooltip` | boolean | `true` | Show property tooltip on hover |
 | `tooltipTrigger` | string | `'hover'` | Tooltip trigger: hover, click, off |
-| `bondLineWidth` | number | `1.0` | Bond line thickness |
-| `transparentBg` | boolean | `false` | Transparent SVG background |
+| ~~`bondLineWidth`~~ | ~~number~~ | ~~`1.0`~~ | ~~Bond line thickness~~ ✅ |
+| ~~`transparentBg`~~ | ~~boolean~~ | ~~`false`~~ | ~~Transparent SVG background~~ ✅ |
 | `pageSize` | number | `0` | Cards per page (0 = no pagination) |
 | `enableSelection` | boolean | `false` | Show checkboxes on cards |

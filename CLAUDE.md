@@ -29,14 +29,14 @@ Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obs
 - **`src/sdf-import.ts`** — SDF import command. Creates notes with YAML frontmatter (SMILES converted from MOL block via RDKit, plus all SDF properties). Generates a `.base` file scoped to the import folder.
 - **`src/csv-import.ts`** — CSV import command. Parses CSV with RFC 4180 quoting, auto-detects `smiles` column, creates notes with frontmatter. No RDKit dependency.
 - **`src/types.ts`** — Shared interfaces (`ParsedMolecule`, `Mols2BasesSettings`) and config key constants.
-- **`src/settings-tab.ts`** — `Mols2BasesSettingTab` plugin settings UI with toggles for `removeHs`, `useCoords`, `storeMolblock`, `lazyRender`, `smartsMatchAll`, and a text input for `searchDelay`.
+- **`src/settings-tab.ts`** — `Mols2BasesSettingTab` plugin settings UI with toggles for `removeHs`, `useCoords`, `storeMolblock`, `lazyRender`, `smartsMatchAll`, `transparentBg`, `comicMode`, and text inputs for `searchDelay` and `bondLineWidth`.
 
 ### Key Patterns
 
 - **Bases API** (not yet in public obsidian typings): `registerBasesView(id, { name, icon, factory, options })`. The view accesses data via `this.data.data` (array of `BasesEntry`), config via `this.config.get(key)` / `this.config.getAsPropertyId(key)`. Lifecycle: constructor → `onload()` → `onDataUpdated()` (repeats) → `onunload()`.
 - **RDKit types** are declared locally in `rdkit-loader.ts` since `@rdkit/rdkit` is only used at runtime for its WASM files, not imported as a TypeScript module.
 - **esbuild** bundles everything into CJS, externalizing `obsidian`, `electron`, and CodeMirror packages. A custom plugin copies WASM files post-build.
-- **Settings** are defined in `Mols2BasesSettings` (`src/types.ts`): `removeHs` (bool, default false — strip Hs before render), `useCoords` (bool, default true — use input coords; false regenerates 2D), `storeMolblock` (bool, default true — include MOL block in frontmatter on SDF import), `lazyRender` (bool, default true — defer rendering to IntersectionObserver), `searchDelay` (number, default 300 — debounce delay in ms for search input), `smartsMatchAll` (bool, default false — highlight all SMARTS matches instead of just the first).
+- **Settings** are defined in `Mols2BasesSettings` (`src/types.ts`): `removeHs` (bool, default false — strip Hs before render), `useCoords` (bool, default true — use input coords; false regenerates 2D), `storeMolblock` (bool, default true — include MOL block in frontmatter on SDF import), `lazyRender` (bool, default true — defer rendering to IntersectionObserver), `searchDelay` (number, default 300 — debounce delay in ms for search input), `smartsMatchAll` (bool, default false — highlight all SMARTS matches instead of just the first), `bondLineWidth` (number, default 1.0 — thickness of bonds in SVGs), `transparentBg` (bool, default false — remove white background from SVGs), `comicMode` (bool, default false — hand-drawn style rendering).
 
 ## Docs
 

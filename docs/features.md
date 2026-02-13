@@ -41,6 +41,9 @@
 - **Store MOL block** (`storeMolblock`, default on) — includes full MOL block in frontmatter during SDF import
 - **Highlight all SMARTS matches** (`smartsMatchAll`, default off) — highlights all substructure matches instead of just the first
 - **Search delay** (`searchDelay`, default 300ms) — configurable debounce delay for search input
+- **Bond line width** (`bondLineWidth`, default 1.0) — configurable thickness of bonds in molecule depictions
+- **Transparent background** (`transparentBg`, default off) — removes white background from molecule SVGs; works better with dark themes
+- **Comic mode** (`comicMode`, default off) — hand-drawn style molecule rendering via RDKit's MolDrawOptions
 
 ## RDKit Integration
 

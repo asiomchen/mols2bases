@@ -305,8 +305,7 @@ export class MoleculeView extends BasesView {
           svgContainer.appendChild(err);
         } else {
           // Check cache — if hit, render immediately; otherwise defer to observer
-          const { removeHs, useCoords } = this.plugin.settings;
-          const cacheKey = `${molStr}||rh=${removeHs}||uc=${useCoords}`;
+          const cacheKey = this.baseCacheKey(molStr);
           const cached = this.svgCache.get(cacheKey);
           if (cached) {
             svgContainer.innerHTML = cached;
@@ -494,7 +493,7 @@ export class MoleculeView extends BasesView {
         shown++;
 
         // Render highlighted SVG
-        const highlightKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}||align=${alignOnSmarts}||smarts=${query}||all=${smartsMatchAll}`;
+        const highlightKey = `${this.baseCacheKey(info.molStr)}||align=${alignOnSmarts}||smarts=${query}||all=${smartsMatchAll}`;
         const cachedHighlight = this.svgCache.get(highlightKey);
         delete info.svgContainer.dataset.mol;
         if (cachedHighlight) {
@@ -508,7 +507,7 @@ export class MoleculeView extends BasesView {
               const noHs = mol.remove_hs();
               renderMol = rdkit.get_mol(noHs);
             }
-            const details = JSON.stringify({ atoms, bonds });
+            const details = this.getDrawDetails({ atoms, bonds });
             const svg = (renderMol ?? mol).get_svg_with_highlights(details);
             this.svgCache.set(highlightKey, svg);
             info.svgContainer.innerHTML = svg;
@@ -528,8 +527,7 @@ export class MoleculeView extends BasesView {
   }
 
   private restoreOriginalSvg(info: CardInfo): void {
-    const { removeHs, useCoords } = this.plugin.settings;
-    const cacheKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}`;
+    const cacheKey = this.baseCacheKey(info.molStr);
     const cached = this.svgCache.get(cacheKey);
     if (cached) {
       info.svgContainer.innerHTML = cached;
@@ -550,14 +548,28 @@ export class MoleculeView extends BasesView {
     }
   }
 
+  private baseCacheKey(molStr: string): string {
+    const { removeHs, useCoords, bondLineWidth, transparentBg, comicMode } = this.plugin.settings;
+    return `${molStr}||rh=${removeHs}||uc=${useCoords}||bw=${bondLineWidth}||tb=${transparentBg}||cm=${comicMode}`;
+  }
+
+  private getDrawDetails(extra?: Record<string, unknown>): string {
+    const details: Record<string, unknown> = {};
+    const { bondLineWidth, transparentBg, comicMode } = this.plugin.settings;
+    if (bondLineWidth !== 1.0) details.bondLineWidth = bondLineWidth;
+    if (transparentBg) details.clearBackground = false;
+    if (comicMode) details.comicMode = true;
+    if (extra) Object.assign(details, extra);
+    return JSON.stringify(details);
+  }
+
   private renderMolecule(rdkit: RDKitModule, molStr: string): string | null {
-    // Build cache key incorporating settings
-    const { removeHs, useCoords } = this.plugin.settings;
-    const cacheKey = `${molStr}||rh=${removeHs}||uc=${useCoords}`;
+    const cacheKey = this.baseCacheKey(molStr);
 
     const cached = this.svgCache.get(cacheKey);
     if (cached) return cached;
 
+    const { removeHs, useCoords } = this.plugin.settings;
     let mol = null;
     let renderMol = null;
     try {
@@ -574,7 +586,7 @@ export class MoleculeView extends BasesView {
         if (!renderMol || !renderMol.is_valid()) return null;
       }
 
-      const svg = (renderMol ?? mol).get_svg();
+      const svg = (renderMol ?? mol).get_svg_with_highlights(this.getDrawDetails());
       this.svgCache.set(cacheKey, svg);
       return svg;
     } catch {
@@ -625,7 +637,7 @@ export class MoleculeView extends BasesView {
       }
     }
 
-    const cacheKey = `${info.molStr}||rh=${this.plugin.settings.removeHs}||uc=${this.plugin.settings.useCoords}||size=${tooltipSize}`;
+    const cacheKey = `${this.baseCacheKey(info.molStr)}||size=${tooltipSize}`;
     let svg = this.svgCache.get(cacheKey);
 
     if (!svg) {
@@ -645,7 +657,7 @@ export class MoleculeView extends BasesView {
           if (!renderMol || !renderMol.is_valid()) return;
         }
 
-        svg = (renderMol ?? mol).get_svg();
+        svg = (renderMol ?? mol).get_svg_with_highlights(this.getDrawDetails());
         if (svg) this.svgCache.set(cacheKey, svg);
       } catch {
         return;
