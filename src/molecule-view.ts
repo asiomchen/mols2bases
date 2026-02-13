@@ -687,14 +687,26 @@ export class MoleculeView extends BasesView {
     const containerRect = this.containerEl.getBoundingClientRect();
     const tooltipRect = this.tooltipEl.getBoundingClientRect();
 
-    let left = cardRect.left - containerRect.left + (cardRect.width / 2) - (tooltipSize / 2);
-    let top = cardRect.bottom - containerRect.top + 8;
+    const tooltipHeight = tooltipRect.height || (tooltipSize + (propsHtml ? 150 : 0));
 
-    if (left < 0) left = 8;
-    if (left + tooltipSize > containerRect.width) left = containerRect.width - tooltipSize - 8;
-    if (top + tooltipSize + (propsHtml ? 150 : 0) > containerRect.height) {
-      top = cardRect.top - containerRect.top - tooltipSize - 8;
+    const spaceAbove = cardRect.top - containerRect.top;
+    const spaceBelow = containerRect.height - (cardRect.bottom - containerRect.top);
+
+    let left = cardRect.left - containerRect.left + (cardRect.width / 2) - (tooltipSize / 2);
+    let top: number;
+
+    if (spaceAbove >= tooltipHeight + 8) {
+      top = cardRect.top - containerRect.top - tooltipHeight - 8;
+    } else if (spaceBelow >= tooltipHeight + 8) {
+      top = cardRect.bottom - containerRect.top + 8;
+    } else {
+      top = cardRect.bottom - containerRect.top + 8;
     }
+
+    if (left < 8) left = 8;
+    if (left + tooltipSize > containerRect.width) left = containerRect.width - tooltipSize - 8;
+    if (top < 8) top = 8;
+    if (top + tooltipHeight > containerRect.height) top = containerRect.height - tooltipHeight - 8;
 
     this.tooltipEl.style.left = `${left}px`;
     this.tooltipEl.style.top = `${top}px`;
