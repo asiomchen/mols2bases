@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, Notice, requestUrl } from 'obsidian';
 
 // RDKit module type (minimal interface we need)
 export interface RDKitModule {
@@ -20,6 +20,10 @@ export interface RDKitMol {
   delete(): void;
 }
 
+const RDKIT_VERSION = '2025.3.4-1.0.0';
+const RDKIT_CDN_BASE = `https://unpkg.com/@rdkit/rdkit@${RDKIT_VERSION}/dist`;
+const RDKIT_FILES = ['RDKit_minimal.js', 'RDKit_minimal.wasm'] as const;
+
 let rdkitInstance: RDKitModule | null = null;
 let rdkitPromise: Promise<RDKitModule> | null = null;
 
@@ -37,7 +41,36 @@ export async function getRDKit(plugin: Plugin): Promise<RDKitModule> {
   }
 }
 
+async function ensureFiles(plugin: Plugin): Promise<void> {
+  const pluginDir = plugin.manifest.dir!;
+  const adapter = plugin.app.vault.adapter;
+  let notice: Notice | null = null;
+
+  for (const file of RDKIT_FILES) {
+    const path = `${pluginDir}/${file}`;
+    if (await adapter.exists(path)) continue;
+
+    if (!notice) {
+      notice = new Notice('Downloading RDKit library...', 0);
+    }
+
+    const url = `${RDKIT_CDN_BASE}/${file}`;
+    const data = await requestUrl({
+      url,
+      headers: { Accept: 'application/octet-stream' },
+    }).arrayBuffer;
+    await adapter.writeBinary(path, data);
+  }
+
+  if (notice) {
+    notice.hide();
+    new Notice('RDKit library ready');
+  }
+}
+
 async function loadRDKit(plugin: Plugin): Promise<RDKitModule> {
+  await ensureFiles(plugin);
+
   const pluginDir = plugin.manifest.dir!;
   const adapter = plugin.app.vault.adapter;
 

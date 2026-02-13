@@ -8,8 +8,6 @@ Ideas inspired by mols2grid and adapted for the Obsidian Bases context. Grouped 
 - **Sort by property** — Dropdown or view option to sort cards by any numeric/text property (e.g., molecular weight, name). Support ascending/descending toggle.
 - **Default sort field** — View option to set the initial sort property.
 
-### Molecule alignment to query
-- **Align to SMARTS query** — When SMARTS search is active, align the 2D depiction so the matched substructure is oriented consistently across all cards. RDKit supports this via `generate_aligned_coords()`.
 
 ### Multi-property display on cards
 - **Subtitle / extra properties** — View option to select additional properties shown below the label (e.g., MW, LogP). mols2grid's `subset` parameter equivalent.
@@ -17,13 +15,8 @@ Ideas inspired by mols2grid and adapted for the Obsidian Bases context. Grouped 
 
 ### Selection & tagging
 - **Checkbox selection** — Add optional checkboxes to cards. Selected molecules can be tagged (add a frontmatter property like `selected: true`) or used to create a new filtered base.
-- **Bulk operations** — Apply tags or properties to all selected molecules at once.
 
 ## Medium Priority
-
-### Tooltip improvements
-- **Rich tooltip** — On hover/click, show a larger molecule rendering with all frontmatter properties listed. Configurable per view which properties appear.
-- **Tooltip trigger setting** — Choose between hover, click, or off.
 
 ### Conditional styling
 - **Color-coded property values** — Style card borders or backgrounds based on a numeric property range (e.g., green for drug-like LogP, red for outliers). Similar to mols2grid's `style` lambdas.
@@ -32,11 +25,6 @@ Ideas inspired by mols2grid and adapted for the Obsidian Bases context. Grouped 
 ### Pagination
 - **Paginated mode** — Alternative to infinite scroll / lazy render. Show N cards per page with page navigation. Useful for very large datasets (1000+).
 - **Items per page setting** — Configurable page size (default 24).
-
-### ~~Rendering options~~ ✅ Implemented
-- ~~**Bond line width** — Setting to control bond thickness in SVGs.~~
-- ~~**Transparent background** — Option to render molecules with no background (works better with dark themes).~~
-- ~~**Comic mode** — Fun hand-drawn style rendering (supported by RDKit's MolDrawOptions).~~
 
 ## Lower Priority
 

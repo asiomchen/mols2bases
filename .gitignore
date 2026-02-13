@@ -2,3 +2,5 @@ node_modules/
 dist/
 main.js
 *.js.map
+RDKit_minimal.js
+RDKit_minimal.wasm

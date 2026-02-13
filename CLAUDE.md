@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` — Production build (minified, no sourcemaps)
 - `npm run dev` — Development build (with inline sourcemaps)
 
-Both output `main.js` to the project root and copy `RDKit_minimal.js` + `RDKit_minimal.wasm` from `node_modules/@rdkit/rdkit/dist/`.
+Both output `main.js` to the project root. RDKit WASM files (`RDKit_minimal.js` + `RDKit_minimal.wasm`) are downloaded automatically from unpkg CDN on first use and cached in the plugin directory.
 
 No test framework is configured yet.
 
@@ -23,7 +23,7 @@ Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obs
 
 - **`src/main.ts`** — Plugin entry. Registers the `molecules` Bases view via `registerBasesView()` and the `import-sdf` and `import-csv` commands.
 - **`src/molecule-view.ts`** — `MoleculeView` extends `BasesView`. Reads molecule data from entry properties, renders SVG grid with event delegation for clicks/hovers. Has an SVG cache keyed by `molStr||settings[||smarts]`. Supports lazy rendering (IntersectionObserver) and search (text + SMARTS with substructure highlighting). Must call `mol.delete()` after each RDKit render to prevent WASM memory leaks.
-- **`src/rdkit-loader.ts`** — Singleton lazy loader for RDKit WASM. Reads `RDKit_minimal.js` + `.wasm` from the plugin directory via Obsidian's vault adapter, injects JS as a blob URL `<script>`, then calls `initRDKitModule({ wasmBinary })`. Deduplicates concurrent init calls.
+- **`src/rdkit-loader.ts`** — Singleton lazy loader for RDKit WASM. On first use, downloads `RDKit_minimal.js` + `.wasm` from unpkg CDN (version-pinned) and caches them in the plugin directory. Injects JS as a blob URL `<script>`, then calls `initRDKitModule({ wasmBinary })`. Deduplicates concurrent init calls. Uses Obsidian's `requestUrl` for downloads.
 - **`src/sdf-parser.ts`** — Pure function `parseSdf()`. No dependencies. Splits on `$$$$`, extracts MOL blocks (up to `M  END`), parses `> <NAME>` property headers.
 - **`src/import-utils.ts`** — Shared helpers for file import: `pickFile`, `readFileAsText`, `buildYaml`, `buildBaseFile`, `sanitizeFilename`, `uniquePath`.
 - **`src/sdf-import.ts`** — SDF import command. Creates notes with YAML frontmatter (SMILES converted from MOL block via RDKit, plus all SDF properties). Generates a `.base` file scoped to the import folder.
@@ -35,7 +35,7 @@ Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obs
 
 - **Bases API** (not yet in public obsidian typings): `registerBasesView(id, { name, icon, factory, options })`. The view accesses data via `this.data.data` (array of `BasesEntry`), config via `this.config.get(key)` / `this.config.getAsPropertyId(key)`. Lifecycle: constructor → `onload()` → `onDataUpdated()` (repeats) → `onunload()`.
 - **RDKit types** are declared locally in `rdkit-loader.ts` since `@rdkit/rdkit` is only used at runtime for its WASM files, not imported as a TypeScript module.
-- **esbuild** bundles everything into CJS, externalizing `obsidian`, `electron`, and CodeMirror packages. A custom plugin copies WASM files post-build.
+- **esbuild** bundles everything into CJS, externalizing `obsidian`, `electron`, and CodeMirror packages.
 - **Settings** are defined in `Mols2BasesSettings` (`src/types.ts`): `removeHs` (bool, default false — strip Hs before render), `useCoords` (bool, default true — use input coords; false regenerates 2D), `storeMolblock` (bool, default true — include MOL block in frontmatter on SDF import), `lazyRender` (bool, default true — defer rendering to IntersectionObserver), `searchDelay` (number, default 300 — debounce delay in ms for search input), `smartsMatchAll` (bool, default false — highlight all SMARTS matches instead of just the first), `bondLineWidth` (number, default 1.0 — thickness of bonds in SVGs), `transparentBg` (bool, default false — remove white background from SVGs), `comicMode` (bool, default false — hand-drawn style rendering).
 
 ## Docs
@@ -48,4 +48,4 @@ When updating CLAUDE.md, also update AGENTS.md with the same information, and vi
 
 ## Install in Obsidian
 
-Copy `main.js`, `manifest.json`, `styles.css`, `RDKit_minimal.js`, `RDKit_minimal.wasm` into `.obsidian/plugins/mols2bases/` in a vault.
+Copy `main.js`, `manifest.json`, `styles.css` into `.obsidian/plugins/mols2bases/` in a vault. RDKit WASM files are downloaded automatically on first use.

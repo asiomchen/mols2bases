@@ -13,7 +13,7 @@ npm run dev     # Development build with inline sourcemaps
 npm run build   # Production build (minified, no sourcemaps)
 ```
 
-Both commands output `main.js` to the project root and copy `RDKit_minimal.js` + `RDKit_minimal.wasm` from `node_modules/@rdkit/rdkit/dist/`.
+Both commands output `main.js` to the project root. RDKit WASM files (`RDKit_minimal.js` + `RDKit_minimal.wasm`) are downloaded automatically from unpkg CDN on first use and cached in the plugin directory.
 
 **No test framework is configured yet.**
 
@@ -132,8 +132,9 @@ npm run dev
 npm run build
 
 # Install in Obsidian vault
-# Copy main.js, manifest.json, styles.css, RDKit_minimal.js, RDKit_minimal.wasm
+# Copy main.js, manifest.json, styles.css
 # to .obsidian/plugins/mols2bases/ in your vault
+# RDKit WASM files are downloaded automatically on first use
 ```
 
 ## Key Files Reference
@@ -142,7 +143,7 @@ npm run build
 |------|---------|
 | `src/main.ts` | Plugin entry, registers views and commands |
 | `src/molecule-view.ts` | Molecule grid view with SVG cards, search (text + SMARTS), lazy rendering |
-| `src/rdkit-loader.ts` | Lazy RDKit WASM loader, RDKit type declarations |
+| `src/rdkit-loader.ts` | Lazy RDKit WASM loader with CDN auto-download, RDKit type declarations |
 | `src/sdf-parser.ts` | Pure SDF parsing (split on `$$$$`) |
 | `src/types.ts` | Interfaces and config constants |
 | `src/settings-tab.ts` | Settings UI (removeHs, useCoords, storeMolblock, lazyRender, smartsMatchAll, searchDelay, bondLineWidth, transparentBg, comicMode) |

@@ -48,7 +48,10 @@
 ## RDKit Integration
 
 - Singleton lazy loader for RDKit WASM
-- Reads `RDKit_minimal.js` and `.wasm` from plugin directory via vault adapter
+- Automatically downloads `RDKit_minimal.js` and `.wasm` from unpkg CDN on first use (version-pinned to match dependency)
+- Caches downloaded files in the plugin directory — subsequent loads are instant with no network required
+- Uses Obsidian's `requestUrl` API for downloads (handles CORS in Electron)
+- Shows a `Notice` during initial download (~7MB WASM file)
 - Injects JS as blob URL script, initializes with WASM binary
 - Deduplicates concurrent init calls
 - Proper WASM memory management (`mol.delete()` after each render)
