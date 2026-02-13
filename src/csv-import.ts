@@ -1,5 +1,13 @@
 import { Notice, normalizePath } from 'obsidian';
-import { pickFile, readFileAsText, buildYaml, buildBaseFile, sanitizeFilename, uniquePath, sleep } from './import-utils';
+import {
+  buildBaseFile,
+  buildYaml,
+  pickFile,
+  readFileAsText,
+  sanitizeFilename,
+  sleep,
+  uniquePath,
+} from './import-utils';
 import type Mols2BasesPlugin from './main';
 
 const BATCH_SIZE = 50;
@@ -84,7 +92,7 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     }
 
     // Auto-detect SMILES column (case-insensitive)
-    const smilesHeader = headers.find(h => h.toLowerCase() === 'smiles');
+    const smilesHeader = headers.find((h) => h.toLowerCase() === 'smiles');
     if (!smilesHeader) {
       notice.hide();
       new Notice("No 'smiles' column found in CSV.");
@@ -97,7 +105,7 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     const baseName = file.name.replace(/\.csv$/i, '');
     const folderPath = normalizePath(baseName);
 
-    if (!await plugin.app.vault.adapter.exists(folderPath)) {
+    if (!(await plugin.app.vault.adapter.exists(folderPath))) {
       await plugin.app.vault.createFolder(folderPath);
     }
 
@@ -108,7 +116,7 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     await plugin.app.workspace.getLeaf(false).openFile(baseFile);
 
     // Find first non-smiles header for note naming
-    const nameHeader = headers.find(h => h.toLowerCase() !== 'smiles');
+    const nameHeader = headers.find((h) => h.toLowerCase() !== 'smiles');
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -116,8 +124,8 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
 
       // Build frontmatter
       const frontmatter: Record<string, string> = {};
-      frontmatter['smiles'] = row[smilesHeader];
-      frontmatter['_mols2bases'] = `[[${baseName}.base]]`;
+      frontmatter.smiles = row[smilesHeader];
+      frontmatter._mols2bases = `[[${baseName}.base]]`;
 
       for (const [key, value] of Object.entries(row)) {
         if (key === smilesHeader) continue;

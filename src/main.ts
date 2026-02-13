@@ -1,11 +1,11 @@
 import { Plugin } from 'obsidian';
-import { MoleculeView } from './molecule-view';
-import { importSdf } from './sdf-import';
 import { importCsv } from './csv-import';
+import { MoleculeView } from './molecule-view';
 import { cleanupRDKit } from './rdkit-loader';
-import { VIEW_TYPE_MOLECULES, DEFAULT_SETTINGS } from './types';
-import type { Mols2BasesSettings } from './types';
+import { importSdf } from './sdf-import';
 import { Mols2BasesSettingTab } from './settings-tab';
+import type { Mols2BasesSettings } from './types';
+import { DEFAULT_SETTINGS, VIEW_TYPE_MOLECULES } from './types';
 
 export default class Mols2BasesPlugin extends Plugin {
   settings: Mols2BasesSettings = DEFAULT_SETTINGS;

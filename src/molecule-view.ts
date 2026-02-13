@@ -1,8 +1,8 @@
-import { BasesView, BasesEntry, BasesViewConfig, QueryController } from 'obsidian';
 import type { BasesAllOptions } from 'obsidian';
-import { getRDKit, RDKitModule, RDKitMol } from './rdkit-loader';
-import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
+import { type BasesEntry, BasesView, type BasesViewConfig, type QueryController } from 'obsidian';
 import type Mols2BasesPlugin from './main';
+import { getRDKit, type RDKitModule, type RDKitMol } from './rdkit-loader';
+import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
 
 interface CardInfo {
   card: HTMLElement;
@@ -118,11 +118,10 @@ export class MoleculeView extends BasesView {
 
     const setMode = (mode: 'text' | 'smarts') => {
       this.searchMode = mode;
-      this.textBtn!.toggleClass('is-active', mode === 'text');
-      this.smartsBtn!.toggleClass('is-active', mode === 'smarts');
-      this.searchInputEl!.placeholder = mode === 'text'
-        ? 'Search molecules...'
-        : 'SMARTS pattern...';
+      this.textBtn?.toggleClass('is-active', mode === 'text');
+      this.smartsBtn?.toggleClass('is-active', mode === 'smarts');
+      this.searchInputEl!.placeholder =
+        mode === 'text' ? 'Search molecules...' : 'SMARTS pattern...';
       this.applyFilter();
     };
     this.textBtn.addEventListener('click', () => setMode('text'));
@@ -278,7 +277,7 @@ export class MoleculeView extends BasesView {
           for (const ioEntry of ioEntries) {
             if (!ioEntry.isIntersecting) continue;
             const el = ioEntry.target as HTMLElement;
-            this.observer!.unobserve(el);
+            this.observer?.unobserve(el);
             const molStr = el.dataset.mol!;
             delete el.dataset.mol;
             const svg = this.renderMolecule(rdkit, molStr);
@@ -336,7 +335,7 @@ export class MoleculeView extends BasesView {
 
         // Yield to browser between batches
         if (i + BATCH_SIZE < entries.length) {
-          await new Promise<void>(r => requestAnimationFrame(() => r()));
+          await new Promise<void>((r) => requestAnimationFrame(() => r()));
         }
       }
     }
@@ -608,7 +607,10 @@ export class MoleculeView extends BasesView {
   private getTooltipProperties(): string[] {
     const propStr = (this.config.get(CONFIG_KEYS.TOOLTIP_PROPERTIES) as string) ?? '';
     if (!propStr.trim()) return [];
-    return propStr.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    return propStr
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
   }
 
   private async showTooltip(card: HTMLElement): Promise<void> {
@@ -618,7 +620,7 @@ export class MoleculeView extends BasesView {
     const entry = this.entryMap.get(card);
     if (!entry) return;
 
-    const info = this.cardInfos.find(i => i.entry === entry);
+    const info = this.cardInfos.find((i) => i.entry === entry);
     if (!info || !info.molStr.trim()) return;
 
     const molPropId = this.config.getAsPropertyId(CONFIG_KEYS.MOLECULE_PROPERTY);
@@ -644,7 +646,7 @@ export class MoleculeView extends BasesView {
       let mol = null;
       let renderMol = null;
       try {
-        mol = rdkit!.get_mol(info.molStr);
+        mol = rdkit?.get_mol(info.molStr);
         if (!mol || !mol.is_valid()) return;
 
         if (!this.plugin.settings.useCoords) {
@@ -653,7 +655,7 @@ export class MoleculeView extends BasesView {
 
         if (this.plugin.settings.removeHs) {
           const molblockNoHs = mol.remove_hs();
-          renderMol = rdkit!.get_mol(molblockNoHs);
+          renderMol = rdkit?.get_mol(molblockNoHs);
           if (!renderMol || !renderMol.is_valid()) return;
         }
 
@@ -672,10 +674,11 @@ export class MoleculeView extends BasesView {
     const fm = this.plugin.app.metadataCache.getFileCache(entry.file)?.frontmatter;
     let propsHtml = '';
     if (fm && Object.keys(fm).length > 0) {
-      const keys = tooltipProps.length > 0 
-        ? tooltipProps.filter(k => k in fm)
-        : Object.keys(fm).filter(k => k !== 'position');
-      
+      const keys =
+        tooltipProps.length > 0
+          ? tooltipProps.filter((k) => k in fm)
+          : Object.keys(fm).filter((k) => k !== 'position');
+
       if (keys.length > 0) {
         propsHtml = '<div class="mol-tooltip-props">';
         for (const key of keys) {
@@ -700,12 +703,12 @@ export class MoleculeView extends BasesView {
     const containerRect = this.containerEl.getBoundingClientRect();
     const tooltipRect = this.tooltipEl.getBoundingClientRect();
 
-    const tooltipHeight = tooltipRect.height || (tooltipSize + (propsHtml ? 150 : 0));
+    const tooltipHeight = tooltipRect.height || tooltipSize + (propsHtml ? 150 : 0);
 
     const spaceAbove = cardRect.top - containerRect.top;
     const spaceBelow = containerRect.height - (cardRect.bottom - containerRect.top);
 
-    let left = cardRect.left - containerRect.left + (cardRect.width / 2) - (tooltipSize / 2);
+    let left = cardRect.left - containerRect.left + cardRect.width / 2 - tooltipSize / 2;
     let top: number;
 
     if (spaceAbove >= tooltipHeight + 8) {

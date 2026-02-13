@@ -1,4 +1,4 @@
-import { Plugin, Notice, requestUrl } from 'obsidian';
+import { Notice, type Plugin, requestUrl } from 'obsidian';
 
 // RDKit module type (minimal interface we need)
 export interface RDKitModule {

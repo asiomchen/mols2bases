@@ -1,8 +1,16 @@
 import { Notice, normalizePath } from 'obsidian';
-import { parseSdf } from './sdf-parser';
-import { getRDKit, RDKitModule } from './rdkit-loader';
-import { pickFile, readFileAsText, buildYaml, buildBaseFile, sanitizeFilename, uniquePath, sleep } from './import-utils';
+import {
+  buildBaseFile,
+  buildYaml,
+  pickFile,
+  readFileAsText,
+  sanitizeFilename,
+  sleep,
+  uniquePath,
+} from './import-utils';
 import type Mols2BasesPlugin from './main';
+import { getRDKit, type RDKitModule } from './rdkit-loader';
+import { parseSdf } from './sdf-parser';
 
 const BATCH_SIZE = 50;
 
@@ -37,7 +45,7 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     const baseName = file.name.replace(/\.(sdf|sd)$/i, '');
     const folderPath = normalizePath(baseName);
 
-    if (!await plugin.app.vault.adapter.exists(folderPath)) {
+    if (!(await plugin.app.vault.adapter.exists(folderPath))) {
       await plugin.app.vault.createFolder(folderPath);
     }
 
@@ -50,16 +58,20 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     // Create notes for each molecule in batches
     for (let i = 0; i < molecules.length; i++) {
       const mol = molecules[i];
-      const name = mol.properties['Name'] || mol.properties['name'] ||
-                   mol.properties['COMMON_NAME'] || mol.properties['ID'] ||
-                   mol.properties['id'] || `molecule_${i + 1}`;
+      const name =
+        mol.properties.Name ||
+        mol.properties.name ||
+        mol.properties.COMMON_NAME ||
+        mol.properties.ID ||
+        mol.properties.id ||
+        `molecule_${i + 1}`;
 
       // Convert MOL block to SMILES via RDKit
       let smiles = '';
       let rdkitMol = null;
       try {
         rdkitMol = rdkit.get_mol(mol.molblock);
-        if (rdkitMol && rdkitMol.is_valid()) {
+        if (rdkitMol?.is_valid()) {
           smiles = rdkitMol.get_smiles();
         }
       } catch {
@@ -70,11 +82,11 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
 
       // Build frontmatter
       const frontmatter: Record<string, string> = {};
-      if (smiles) frontmatter['smiles'] = smiles;
+      if (smiles) frontmatter.smiles = smiles;
       if (plugin.settings.storeMolblock) {
-        frontmatter['molblock'] = mol.molblock;
+        frontmatter.molblock = mol.molblock;
       }
-      frontmatter['_mols2bases'] = `[[${baseName}.base]]`;
+      frontmatter._mols2bases = `[[${baseName}.base]]`;
 
       // Add all SDF properties
       for (const [key, value] of Object.entries(mol.properties)) {

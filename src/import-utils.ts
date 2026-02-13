@@ -1,4 +1,4 @@
-import { App, normalizePath } from 'obsidian';
+import type { App } from 'obsidian';
 
 export function pickFile(accept: string): Promise<File | null> {
   return new Promise((resolve) => {
@@ -38,11 +38,11 @@ export function buildYaml(props: Record<string, string>): string {
         lines.push(`  ${line}`);
       }
     } else {
-      const needsQuote = /[:{}\[\],&*?|>!%#@`"']/.test(value) || value.trim() !== value;
+      const needsQuote = /[:{}[\],&*?|>!%#@`"']/.test(value) || value.trim() !== value;
       lines.push(`${key}: ${needsQuote ? JSON.stringify(value) : value}`);
     }
   }
-  return lines.join('\n') + '\n';
+  return `${lines.join('\n')}\n`;
 }
 
 export function buildBaseFile(baseName: string): string {
@@ -63,11 +63,11 @@ export function sanitizeFilename(name: string): string {
 }
 
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function uniquePath(app: App, path: string): Promise<string> {
-  if (!await app.vault.adapter.exists(path)) return path;
+  if (!(await app.vault.adapter.exists(path))) return path;
 
   const ext = path.substring(path.lastIndexOf('.'));
   const base = path.substring(0, path.lastIndexOf('.'));

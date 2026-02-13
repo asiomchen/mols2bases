@@ -1,4 +1,4 @@
-import { ParsedMolecule } from './types';
+import type { ParsedMolecule } from './types';
 
 /**
  * Parse an SDF file into individual molecules with their properties.
