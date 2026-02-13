@@ -1,7 +1,7 @@
 {
   "name": "mols2bases",
   "version": "0.1.0",
-  "description": "Molecule visualization for Obsidian Bases",
+  "description": "Molecule visualization for Bases",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
