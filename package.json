@@ -1,6 +1,6 @@
 {
   "name": "mols2bases",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Molecule visualization for Obsidian Bases",
   "main": "main.js",
   "scripts": {
