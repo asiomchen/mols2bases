@@ -12,6 +12,7 @@ export interface Mols2BasesSettings {
   lazyRender: boolean;
   searchDelay: number;
   smartsMatchAll: boolean;
+  alignOnSmarts: boolean;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   lazyRender: true,
   searchDelay: 300,
   smartsMatchAll: false,
+  alignOnSmarts: true,
 };
 
 export const CONFIG_KEYS = {

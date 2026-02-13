@@ -16,6 +16,7 @@ export interface RDKitMol {
   get_smiles(): string;
   remove_hs(): string;
   set_new_coords(useCoordGen?: boolean): boolean;
+  generate_aligned_coords(template: RDKitMol, options?: string): boolean;
   delete(): void;
 }
 

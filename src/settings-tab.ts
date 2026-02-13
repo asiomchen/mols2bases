@@ -74,6 +74,18 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('Align on SMARTS search')
+      .setDesc('Align molecules to the matched substructure for consistent orientation during SMARTS search.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.alignOnSmarts)
+          .onChange(async (value) => {
+            this.plugin.settings.alignOnSmarts = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName('Search delay (ms)')
       .setDesc('Debounce delay for search input. Increase for large datasets.')
       .addText((text) =>

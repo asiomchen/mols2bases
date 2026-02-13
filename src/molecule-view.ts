@@ -443,7 +443,7 @@ export class MoleculeView extends BasesView {
 
     this.searchInputEl?.removeClass('mol-search-error');
     let shown = 0;
-    const { removeHs, useCoords, smartsMatchAll } = this.plugin.settings;
+    const { removeHs, useCoords, smartsMatchAll, alignOnSmarts } = this.plugin.settings;
 
     for (const info of this.cardInfos) {
       if (!info.molStr.trim()) {
@@ -494,13 +494,14 @@ export class MoleculeView extends BasesView {
         shown++;
 
         // Render highlighted SVG
-        const highlightKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}||smarts=${query}||all=${smartsMatchAll}`;
+        const highlightKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}||align=${alignOnSmarts}||smarts=${query}||all=${smartsMatchAll}`;
         const cachedHighlight = this.svgCache.get(highlightKey);
         delete info.svgContainer.dataset.mol;
         if (cachedHighlight) {
           info.svgContainer.innerHTML = cachedHighlight;
         } else {
           if (!useCoords) mol.set_new_coords();
+          if (alignOnSmarts) mol.generate_aligned_coords(qmol, '');
           let renderMol: RDKitMol | null = null;
           try {
             if (removeHs) {
