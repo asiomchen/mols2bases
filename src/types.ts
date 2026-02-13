@@ -10,6 +10,7 @@ export interface Mols2BasesSettings {
   useCoords: boolean;
   storeMolblock: boolean;
   lazyRender: boolean;
+  searchDelay: number;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   useCoords: true,
   storeMolblock: true,
   lazyRender: true,
+  searchDelay: 300,
 };
 
 export const CONFIG_KEYS = {

@@ -60,5 +60,20 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName('Search delay (ms)')
+      .setDesc('Debounce delay for search input. Increase for large datasets.')
+      .addText((text) =>
+        text
+          .setValue(String(this.plugin.settings.searchDelay))
+          .onChange(async (value) => {
+            const num = parseInt(value, 10);
+            if (!isNaN(num) && num >= 0) {
+              this.plugin.settings.searchDelay = num;
+              await this.plugin.saveSettings();
+            }
+          }),
+      );
   }
 }

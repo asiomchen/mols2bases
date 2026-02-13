@@ -12,6 +12,9 @@
 - Chunked async rendering (batches of 20 per frame) to avoid blocking the UI with 100+ molecules (used when lazy render is off)
 - CSS containment on cards for reduced layout cost
 - Event delegation for click and hover handlers
+- **Text search** — debounced (300ms) case-insensitive filter across all frontmatter properties and file names
+- **SMARTS substructure search** — toggle to SMARTS mode to filter molecules by substructure pattern; matching molecules are highlighted with atom/bond coloring via `get_svg_with_highlights`
+- Search bar with Text/SMARTS toggle and result counter ("N of M")
 
 ## SDF Import
 

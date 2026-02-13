@@ -4,7 +4,7 @@ This file provides guidance for AI agents working on the mols2bases codebase.
 
 ## Project Overview
 
-Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obsidian ≥1.10.0). Uses RDKit.js for rendering molecular structures.
+Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obsidian ≥1.10.0). Uses RDKit.js for rendering molecular structures. Features: molecule grid view (with text + SMARTS search and lazy rendering), SDF import, and CSV import.
 
 ## Build Commands
 
@@ -92,6 +92,8 @@ try {
 
 - **Critical**: Always call `mol.delete()` on RDKit molecules after use to prevent WASM memory leaks
 - Use singletons for expensive resources (e.g., RDKit instance in `rdkit-loader.ts`)
+- SVG cache keys include settings: `molStr||rh=${removeHs}||uc=${useCoords}` (plain) or `...||smarts=${query}` (highlighted)
+- When search is active, the IntersectionObserver is disconnected to prevent race conditions (observer overwriting highlighted SVGs)
 
 ### Async/Await
 
@@ -103,12 +105,12 @@ try {
 ```
 src/
   main.ts          # Plugin entry point
-  molecule-view.ts # MoleculeView extends BasesView
+  molecule-view.ts # MoleculeView extends BasesView (grid, search, lazy render)
   rdkit-loader.ts  # RDKit WASM lazy loader + types
   sdf-parser.ts    # Pure function parseSdf()
   sdf-import.ts    # SDF import command
   csv-import.ts    # CSV import command
-  import-utils.ts   # Shared file import helpers
+  import-utils.ts  # Shared file import helpers
   types.ts         # Interfaces and constants
   settings-tab.ts  # Settings UI
 ```
@@ -139,11 +141,15 @@ npm run build
 | File | Purpose |
 |------|---------|
 | `src/main.ts` | Plugin entry, registers views and commands |
-| `src/molecule-view.ts` | Molecule grid view rendering SVG cards |
+| `src/molecule-view.ts` | Molecule grid view with SVG cards, search (text + SMARTS), lazy rendering |
 | `src/rdkit-loader.ts` | Lazy RDKit WASM loader, RDKit type declarations |
 | `src/sdf-parser.ts` | Pure SDF parsing (split on `$$$$`) |
 | `src/types.ts` | Interfaces and config constants |
-| `src/settings-tab.ts` | Settings UI (removeHs, useCoords, storeMolblock) |
+| `src/settings-tab.ts` | Settings UI (removeHs, useCoords, storeMolblock, lazyRender, searchDelay) |
+
+## Keeping docs in sync
+
+When updating AGENTS.md, also update CLAUDE.md with the same information, and vice versa. Both files should stay consistent.
 
 ## Known Caveats
 

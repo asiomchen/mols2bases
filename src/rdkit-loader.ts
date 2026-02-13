@@ -3,12 +3,14 @@ import { Plugin } from 'obsidian';
 // RDKit module type (minimal interface we need)
 export interface RDKitModule {
   get_mol(input: string): RDKitMol | null;
+  get_qmol(smarts: string): RDKitMol | null;
   version(): string;
 }
 
 export interface RDKitMol {
   get_svg(width?: number, height?: number): string;
   get_svg_with_highlights(details: string): string;
+  get_substruct_match(query: RDKitMol): string;
   is_valid(): boolean;
   get_smiles(): string;
   remove_hs(): string;

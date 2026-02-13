@@ -1,8 +1,15 @@
 import { BasesView, BasesEntry, BasesViewConfig, QueryController } from 'obsidian';
 import type { BasesAllOptions } from 'obsidian';
-import { getRDKit, RDKitModule } from './rdkit-loader';
+import { getRDKit, RDKitModule, RDKitMol } from './rdkit-loader';
 import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
 import type Mols2BasesPlugin from './main';
+
+interface CardInfo {
+  card: HTMLElement;
+  svgContainer: HTMLElement;
+  molStr: string;
+  entry: BasesEntry;
+}
 
 export class MoleculeView extends BasesView {
   private containerEl: HTMLElement;
@@ -12,6 +19,16 @@ export class MoleculeView extends BasesView {
   private renderGeneration = 0;
   private entryMap = new WeakMap<HTMLElement, BasesEntry>();
   private observer: IntersectionObserver | null = null;
+
+  private searchBarEl: HTMLElement | null = null;
+  private searchInputEl: HTMLInputElement | null = null;
+  private searchCountEl: HTMLElement | null = null;
+  private textBtn: HTMLButtonElement | null = null;
+  private smartsBtn: HTMLButtonElement | null = null;
+  private searchMode: 'text' | 'smarts' = 'text';
+  private cardInfos: CardInfo[] = [];
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private rdkitRef: RDKitModule | null = null;
 
   constructor(controller: QueryController, containerEl: HTMLElement, plugin: Mols2BasesPlugin) {
     super(controller);
@@ -55,6 +72,41 @@ export class MoleculeView extends BasesView {
   }
 
   onload(): void {
+    // Search bar
+    this.searchBarEl = this.containerEl.createDiv({ cls: 'mol-search-bar' });
+
+    this.searchInputEl = this.searchBarEl.createEl('input', {
+      cls: 'mol-search-input',
+      attr: { type: 'text', placeholder: 'Search molecules...' },
+    });
+    this.searchInputEl.addEventListener('input', () => this.onSearchInput());
+
+    const modesEl = this.searchBarEl.createDiv({ cls: 'mol-search-modes' });
+
+    this.textBtn = modesEl.createEl('button', {
+      cls: 'mol-search-toggle is-active',
+      text: 'Text',
+    });
+    this.smartsBtn = modesEl.createEl('button', {
+      cls: 'mol-search-toggle',
+      text: 'SMARTS',
+    });
+
+    const setMode = (mode: 'text' | 'smarts') => {
+      this.searchMode = mode;
+      this.textBtn!.toggleClass('is-active', mode === 'text');
+      this.smartsBtn!.toggleClass('is-active', mode === 'smarts');
+      this.searchInputEl!.placeholder = mode === 'text'
+        ? 'Search molecules...'
+        : 'SMARTS pattern...';
+      this.applyFilter();
+    };
+    this.textBtn.addEventListener('click', () => setMode('text'));
+    this.smartsBtn.addEventListener('click', () => setMode('smarts'));
+
+    this.searchCountEl = this.searchBarEl.createDiv({ cls: 'mol-search-count' });
+
+    // Grid
     this.gridEl = this.containerEl.createDiv({ cls: 'mol-grid' });
 
     // Event delegation: single click listener for all cards
@@ -86,6 +138,13 @@ export class MoleculeView extends BasesView {
     this.observer?.disconnect();
     this.observer = null;
     this.svgCache.clear();
+    this.cardInfos = [];
+    this.rdkitRef = null;
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    if (this.searchBarEl) {
+      this.searchBarEl.remove();
+      this.searchBarEl = null;
+    }
     if (this.gridEl) {
       this.gridEl.remove();
       this.gridEl = null;
@@ -123,11 +182,13 @@ export class MoleculeView extends BasesView {
       });
       return;
     }
+    this.rdkitRef = rdkit;
+    this.cardInfos = [];
 
     const entries = this.data.data;
 
     // Helper: create a card element for one entry
-    const createCard = (entry: BasesEntry): { card: HTMLElement; svgContainer: HTMLElement; molStr: string } => {
+    const createCard = (entry: BasesEntry): CardInfo => {
       const molValue = entry.getValue(molPropId);
       const molStr = molValue ? molValue.toString() : '';
       const labelValue = labelPropId ? entry.getValue(labelPropId) : null;
@@ -149,7 +210,9 @@ export class MoleculeView extends BasesView {
       labelEl.textContent = label;
       card.appendChild(labelEl);
 
-      return { card, svgContainer, molStr };
+      const info: CardInfo = { card, svgContainer, molStr, entry };
+      this.cardInfos.push(info);
+      return info;
     };
 
     // Helper: render SVG into a container (eager)
@@ -242,6 +305,194 @@ export class MoleculeView extends BasesView {
           await new Promise<void>(r => requestAnimationFrame(() => r()));
         }
       }
+    }
+
+    this.applyFilter();
+  }
+
+  private onSearchInput(): void {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => this.applyFilter(), this.plugin.settings.searchDelay);
+  }
+
+  private applyFilter(): void {
+    const query = this.searchInputEl?.value.trim() ?? '';
+    const rdkit = this.rdkitRef;
+
+    this.searchInputEl?.removeClass('mol-search-error');
+
+    if (!query) {
+      // Show all cards, restore original SVGs
+      for (const info of this.cardInfos) {
+        info.card.removeAttribute('data-hidden');
+        this.restoreOriginalSvg(info);
+      }
+      // Re-observe any lazy containers that still need rendering
+      if (this.observer) {
+        for (const info of this.cardInfos) {
+          if (info.svgContainer.dataset.mol) {
+            this.observer.observe(info.svgContainer);
+          }
+        }
+      }
+      this.updateCount(this.cardInfos.length, this.cardInfos.length);
+      return;
+    }
+
+    // Disconnect observer while filter is active to prevent race conditions
+    // (observer would overwrite highlighted SVGs with plain ones)
+    this.observer?.disconnect();
+
+    if (this.searchMode === 'text') {
+      this.applyTextFilter(query);
+    } else {
+      this.applySmartsFilter(query, rdkit);
+    }
+  }
+
+  private applyTextFilter(query: string): void {
+    const lowerQuery = query.toLowerCase();
+    let shown = 0;
+
+    for (const info of this.cardInfos) {
+      // Restore original SVG for text mode
+      this.restoreOriginalSvg(info);
+
+      let matches = false;
+
+      // Check file basename
+      if (info.entry.file.basename.toLowerCase().includes(lowerQuery)) {
+        matches = true;
+      }
+
+      // Check frontmatter properties
+      if (!matches) {
+        const fm = this.plugin.app.metadataCache.getFileCache(info.entry.file)?.frontmatter;
+        if (fm) {
+          for (const key of Object.keys(fm)) {
+            const val = fm[key];
+            if (val != null && String(val).toLowerCase().includes(lowerQuery)) {
+              matches = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (matches) {
+        info.card.removeAttribute('data-hidden');
+        shown++;
+      } else {
+        info.card.setAttribute('data-hidden', '');
+      }
+    }
+
+    this.updateCount(shown, this.cardInfos.length);
+  }
+
+  private applySmartsFilter(query: string, rdkit: RDKitModule | null): void {
+    if (!rdkit) return;
+
+    let qmol: RDKitMol | null = null;
+    try {
+      qmol = rdkit.get_qmol(query);
+      if (!qmol || !qmol.is_valid()) {
+        // Invalid SMARTS — show error state on search input
+        this.searchInputEl?.addClass('mol-search-error');
+        // Keep current visibility unchanged
+        return;
+      }
+    } catch {
+      this.searchInputEl?.addClass('mol-search-error');
+      return;
+    }
+
+    this.searchInputEl?.removeClass('mol-search-error');
+    let shown = 0;
+    const { removeHs, useCoords } = this.plugin.settings;
+
+    for (const info of this.cardInfos) {
+      if (!info.molStr.trim()) {
+        info.card.setAttribute('data-hidden', '');
+        continue;
+      }
+
+      let mol: RDKitMol | null = null;
+      try {
+        mol = rdkit.get_mol(info.molStr);
+        if (!mol || !mol.is_valid()) {
+          info.card.setAttribute('data-hidden', '');
+          continue;
+        }
+
+        const matchJson = mol.get_substruct_match(qmol);
+        const match = JSON.parse(matchJson);
+        const hasMatch = match.atoms && match.atoms.length > 0;
+
+        if (hasMatch) {
+          info.card.removeAttribute('data-hidden');
+          shown++;
+
+          // Render highlighted SVG
+          const highlightKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}||smarts=${query}`;
+          const cachedHighlight = this.svgCache.get(highlightKey);
+          delete info.svgContainer.dataset.mol;
+          if (cachedHighlight) {
+            info.svgContainer.innerHTML = cachedHighlight;
+          } else {
+            if (!useCoords) mol.set_new_coords();
+            let renderMol: RDKitMol | null = null;
+            try {
+              if (removeHs) {
+                const noHs = mol.remove_hs();
+                renderMol = rdkit.get_mol(noHs);
+              }
+              const details = JSON.stringify({
+                atoms: match.atoms,
+                bonds: match.bonds,
+              });
+              const svg = (renderMol ?? mol).get_svg_with_highlights(details);
+              this.svgCache.set(highlightKey, svg);
+              info.svgContainer.innerHTML = svg;
+            } finally {
+              if (renderMol) renderMol.delete();
+            }
+          }
+        } else {
+          info.card.setAttribute('data-hidden', '');
+          this.restoreOriginalSvg(info);
+        }
+      } catch {
+        info.card.setAttribute('data-hidden', '');
+      } finally {
+        if (mol) mol.delete();
+      }
+    }
+
+    qmol.delete();
+    this.updateCount(shown, this.cardInfos.length);
+  }
+
+  private restoreOriginalSvg(info: CardInfo): void {
+    const { removeHs, useCoords } = this.plugin.settings;
+    const cacheKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}`;
+    const cached = this.svgCache.get(cacheKey);
+    if (cached) {
+      info.svgContainer.innerHTML = cached;
+    } else if (info.molStr.trim() && !info.svgContainer.dataset.mol) {
+      // Lazy container that was modified by a filter — restore dataset.mol
+      // so the observer can render it when re-observed
+      info.svgContainer.dataset.mol = info.molStr;
+    }
+  }
+
+  private updateCount(shown: number, total: number): void {
+    if (!this.searchCountEl) return;
+    const query = this.searchInputEl?.value.trim() ?? '';
+    if (!query) {
+      this.searchCountEl.textContent = '';
+    } else {
+      this.searchCountEl.textContent = `${shown} of ${total}`;
     }
   }
 
