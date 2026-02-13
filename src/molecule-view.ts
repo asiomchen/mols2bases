@@ -1,52 +1,10 @@
+import { BasesView, BasesEntry, BasesViewConfig, QueryController } from 'obsidian';
+import type { BasesAllOptions } from 'obsidian';
 import { getRDKit, RDKitModule } from './rdkit-loader';
 import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
 import type Mols2BasesPlugin from './main';
 
-// Obsidian Bases types (not yet in the public typings)
-interface BasesViewOption {
-  type: 'property' | 'slider' | 'text' | 'group';
-  key: string;
-  displayName: string;
-  min?: number;
-  max?: number;
-  step?: number;
-  defaultValue?: any;
-}
-
-interface BasesEntry {
-  file: import('obsidian').TFile;
-  getValue(propertyId: string): any;
-}
-
-interface BasesData {
-  data: BasesEntry[];
-}
-
-interface BasesConfig {
-  get(key: string): any;
-  getAsPropertyId(key: string): string | undefined;
-}
-
-interface QueryController {
-  on(event: string, callback: (...args: any[]) => void): void;
-}
-
-// We declare BasesView as a class we extend at runtime
-declare class BasesView {
-  controller: QueryController;
-  data: BasesData;
-  config: BasesConfig;
-  constructor(controller: QueryController);
-  onload(): void;
-  onunload(): void;
-  onDataUpdated(): void;
-  get type(): string;
-}
-
-// Get the BasesView base class from obsidian module
-const { BasesView: BasesViewClass } = require('obsidian') as { BasesView: typeof BasesView };
-
-export class MoleculeView extends BasesViewClass {
+export class MoleculeView extends BasesView {
   private containerEl: HTMLElement;
   private plugin: Mols2BasesPlugin;
   private gridEl: HTMLElement | null = null;
@@ -61,11 +19,9 @@ export class MoleculeView extends BasesViewClass {
     this.plugin = plugin;
   }
 
-  get type(): string {
-    return VIEW_TYPE_MOLECULES;
-  }
+  type = VIEW_TYPE_MOLECULES;
 
-  static getViewOptions(): BasesViewOption[] {
+  static getViewOptions(_config: BasesViewConfig): BasesAllOptions[] {
     return [
       {
         type: 'property',
@@ -84,7 +40,7 @@ export class MoleculeView extends BasesViewClass {
         min: 100,
         max: 400,
         step: 10,
-        defaultValue: 200,
+        default: 200,
       },
       {
         type: 'slider',
@@ -93,7 +49,7 @@ export class MoleculeView extends BasesViewClass {
         min: 120,
         max: 500,
         step: 10,
-        defaultValue: 240,
+        default: 240,
       },
     ];
   }
@@ -173,9 +129,9 @@ export class MoleculeView extends BasesViewClass {
     // Helper: create a card element for one entry
     const createCard = (entry: BasesEntry): { card: HTMLElement; svgContainer: HTMLElement; molStr: string } => {
       const molValue = entry.getValue(molPropId);
-      const molStr = typeof molValue === 'string' ? molValue : String(molValue ?? '');
+      const molStr = molValue ? molValue.toString() : '';
       const labelValue = labelPropId ? entry.getValue(labelPropId) : null;
-      const label = labelValue != null ? String(labelValue) : entry.file.basename;
+      const label = labelValue ? labelValue.toString() : entry.file.basename;
 
       const card = document.createElement('div');
       card.className = 'mol-card';
