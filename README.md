@@ -15,6 +15,30 @@ Requires Obsidian 1.10.0+.
 
 See [docs/features.md](docs/features.md) for the full list.
 
+
+## Demo
+After plugin is installed you can use new commands to load SDF or CSV
+
+![Import commands](docs/assets/import-commands.png)
+
+Compounds would be loaded as individual notes with YAML frontmatter and linked into single Base with the name of the file. The Base view would render molecule cards with name and properties from frontmatter. You can search by text or SMARTS pattern, and matched substructures will be highlighted in the SVGs.
+
+**Molecule grid view**
+
+![Molecule grid view](docs/assets/molecule-grid.png)
+
+**SMARTS substructure search with match highlighting**
+
+![SMARTS search with match highlighting](docs/assets/smarts-search.png)
+
+
+Some of the options can be configured in the view settings:
+
+![View settings](docs/assets/view-settings.png)
+
+E.g by default plugin uses `smiles` frontmatter field for rendering (which is auto-added to the sdf imports), but you can change it to any other field that contains SMILES or MOL blocks (espesically useful for the CSV import when you molecular column is not named `smiles`). You can also adjust bond line width, toggle transparent background, or enable comic mode for fun hand-drawn style renderings.
+
+
 ## Installation
 
 Copy `main.js`, `manifest.json`, `styles.css` into `.obsidian/plugins/mols2bases/` in your vault.
