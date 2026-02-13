@@ -12,9 +12,9 @@
 - Chunked async rendering (batches of 20 per frame) to avoid blocking the UI with 100+ molecules (used when lazy render is off)
 - CSS containment on cards for reduced layout cost
 - Event delegation for click and hover handlers
-- **Text search** — debounced (300ms) case-insensitive filter across all frontmatter properties and file names
-- **SMARTS substructure search** — toggle to SMARTS mode to filter molecules by substructure pattern; matching molecules are highlighted with atom/bond coloring via `get_svg_with_highlights`
-- Search bar with Text/SMARTS toggle and result counter ("N of M")
+- **Text search** — debounced (configurable delay, default 300ms) case-insensitive filter across all frontmatter properties and file names
+- **SMARTS substructure search** — toggle to SMARTS mode to filter molecules by substructure pattern; matching molecules are highlighted with atom/bond coloring via `get_svg_with_highlights`; supports first match (default) or all matches (`smartsMatchAll` setting)
+- Search bar with separate Text and SMARTS mode buttons and result counter ("N of M")
 
 ## SDF Import
 
@@ -39,6 +39,8 @@
 - **Remove hydrogens** (`removeHs`, default off) — strips hydrogen atoms before rendering
 - **Use original coordinates** (`useCoords`, default on) — uses input coordinates as-is; when off, regenerates clean 2D layouts
 - **Store MOL block** (`storeMolblock`, default on) — includes full MOL block in frontmatter during SDF import
+- **Highlight all SMARTS matches** (`smartsMatchAll`, default off) — highlights all substructure matches instead of just the first
+- **Search delay** (`searchDelay`, default 300ms) — configurable debounce delay for search input
 
 ## RDKit Integration
 

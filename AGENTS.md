@@ -145,7 +145,7 @@ npm run build
 | `src/rdkit-loader.ts` | Lazy RDKit WASM loader, RDKit type declarations |
 | `src/sdf-parser.ts` | Pure SDF parsing (split on `$$$$`) |
 | `src/types.ts` | Interfaces and config constants |
-| `src/settings-tab.ts` | Settings UI (removeHs, useCoords, storeMolblock, lazyRender, searchDelay) |
+| `src/settings-tab.ts` | Settings UI (removeHs, useCoords, storeMolblock, lazyRender, smartsMatchAll, searchDelay) |
 
 ## Keeping docs in sync
 

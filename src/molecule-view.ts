@@ -339,13 +339,12 @@ export class MoleculeView extends BasesView {
       return;
     }
 
-    // Disconnect observer while filter is active to prevent race conditions
-    // (observer would overwrite highlighted SVGs with plain ones)
-    this.observer?.disconnect();
-
     if (this.searchMode === 'text') {
       this.applyTextFilter(query);
     } else {
+      // Disconnect observer while SMARTS filter is active to prevent race conditions
+      // (observer would overwrite highlighted SVGs with plain ones)
+      this.observer?.disconnect();
       this.applySmartsFilter(query, rdkit);
     }
   }
@@ -409,7 +408,7 @@ export class MoleculeView extends BasesView {
 
     this.searchInputEl?.removeClass('mol-search-error');
     let shown = 0;
-    const { removeHs, useCoords } = this.plugin.settings;
+    const { removeHs, useCoords, smartsMatchAll } = this.plugin.settings;
 
     for (const info of this.cardInfos) {
       if (!info.molStr.trim()) {
@@ -425,42 +424,61 @@ export class MoleculeView extends BasesView {
           continue;
         }
 
-        const matchJson = mol.get_substruct_match(qmol);
-        const match = JSON.parse(matchJson);
-        const hasMatch = match.atoms && match.atoms.length > 0;
+        let atoms: number[];
+        let bonds: number[];
 
-        if (hasMatch) {
-          info.card.removeAttribute('data-hidden');
-          shown++;
-
-          // Render highlighted SVG
-          const highlightKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}||smarts=${query}`;
-          const cachedHighlight = this.svgCache.get(highlightKey);
-          delete info.svgContainer.dataset.mol;
-          if (cachedHighlight) {
-            info.svgContainer.innerHTML = cachedHighlight;
-          } else {
-            if (!useCoords) mol.set_new_coords();
-            let renderMol: RDKitMol | null = null;
-            try {
-              if (removeHs) {
-                const noHs = mol.remove_hs();
-                renderMol = rdkit.get_mol(noHs);
-              }
-              const details = JSON.stringify({
-                atoms: match.atoms,
-                bonds: match.bonds,
-              });
-              const svg = (renderMol ?? mol).get_svg_with_highlights(details);
-              this.svgCache.set(highlightKey, svg);
-              info.svgContainer.innerHTML = svg;
-            } finally {
-              if (renderMol) renderMol.delete();
-            }
+        if (smartsMatchAll) {
+          const matchesJson = mol.get_substruct_matches(qmol);
+          const matches: Array<{ atoms: number[]; bonds: number[] }> = JSON.parse(matchesJson);
+          if (!matches.length || !matches[0].atoms?.length) {
+            info.card.setAttribute('data-hidden', '');
+            this.restoreOriginalSvg(info);
+            continue;
           }
+          const atomSet = new Set<number>();
+          const bondSet = new Set<number>();
+          for (const m of matches) {
+            for (const a of m.atoms) atomSet.add(a);
+            for (const b of m.bonds) bondSet.add(b);
+          }
+          atoms = [...atomSet];
+          bonds = [...bondSet];
         } else {
-          info.card.setAttribute('data-hidden', '');
-          this.restoreOriginalSvg(info);
+          const matchJson = mol.get_substruct_match(qmol);
+          const match = JSON.parse(matchJson);
+          if (!match.atoms || !match.atoms.length) {
+            info.card.setAttribute('data-hidden', '');
+            this.restoreOriginalSvg(info);
+            continue;
+          }
+          atoms = match.atoms;
+          bonds = match.bonds;
+        }
+
+        info.card.removeAttribute('data-hidden');
+        shown++;
+
+        // Render highlighted SVG
+        const highlightKey = `${info.molStr}||rh=${removeHs}||uc=${useCoords}||smarts=${query}||all=${smartsMatchAll}`;
+        const cachedHighlight = this.svgCache.get(highlightKey);
+        delete info.svgContainer.dataset.mol;
+        if (cachedHighlight) {
+          info.svgContainer.innerHTML = cachedHighlight;
+        } else {
+          if (!useCoords) mol.set_new_coords();
+          let renderMol: RDKitMol | null = null;
+          try {
+            if (removeHs) {
+              const noHs = mol.remove_hs();
+              renderMol = rdkit.get_mol(noHs);
+            }
+            const details = JSON.stringify({ atoms, bonds });
+            const svg = (renderMol ?? mol).get_svg_with_highlights(details);
+            this.svgCache.set(highlightKey, svg);
+            info.svgContainer.innerHTML = svg;
+          } finally {
+            if (renderMol) renderMol.delete();
+          }
         }
       } catch {
         info.card.setAttribute('data-hidden', '');

@@ -11,6 +11,7 @@ export interface RDKitMol {
   get_svg(width?: number, height?: number): string;
   get_svg_with_highlights(details: string): string;
   get_substruct_match(query: RDKitMol): string;
+  get_substruct_matches(query: RDKitMol): string;
   is_valid(): boolean;
   get_smiles(): string;
   remove_hs(): string;

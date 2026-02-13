@@ -62,6 +62,18 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('Highlight all SMARTS matches')
+      .setDesc('Highlight all substructure matches in a molecule. When off, only the first match is highlighted.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.smartsMatchAll)
+          .onChange(async (value) => {
+            this.plugin.settings.smartsMatchAll = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName('Search delay (ms)')
       .setDesc('Debounce delay for search input. Increase for large datasets.')
       .addText((text) =>

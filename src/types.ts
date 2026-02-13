@@ -11,6 +11,7 @@ export interface Mols2BasesSettings {
   storeMolblock: boolean;
   lazyRender: boolean;
   searchDelay: number;
+  smartsMatchAll: boolean;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   storeMolblock: true,
   lazyRender: true,
   searchDelay: 300,
+  smartsMatchAll: false,
 };
 
 export const CONFIG_KEYS = {
