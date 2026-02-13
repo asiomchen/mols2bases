@@ -16,27 +16,65 @@ Requires Obsidian 1.10.0+.
 See [docs/features.md](docs/features.md) for the full list.
 
 
-## Demo
-After plugin is installed you can use new commands to load SDF or CSV
+## Usage
+
+### 1. Import your data
+
+Open the command palette (`Ctrl/Cmd + P`) and run one of the import commands:
 
 ![Import commands](docs/assets/import-commands.png)
 
-Compounds would be loaded as individual notes with YAML frontmatter and linked into single Base with the name of the file. The Base view would render molecule cards with name and properties from frontmatter. You can search by text or SMARTS pattern, and matched substructures will be highlighted in the SVGs.
+- **Mols2Bases: Import SDF file** — each molecule becomes a note with SMILES (converted via RDKit), MOL block (optional), and all SDF properties stored as YAML frontmatter.
+- **Mols2Bases: Import CSV file** — each row becomes a note. The plugin auto-detects the `smiles` column (case-insensitive) and adds all other columns as frontmatter properties.
 
-**Molecule grid view**
+Both commands create a folder of notes and a `.base` file that ties them together.
+
+> **Note:** The plugin works best with files under ~5,000 compounds. Larger datasets may degrade Obsidian's performance — test with your setup before importing very large files.
+
+### 2. Browse the molecule grid
+
+Open the generated `.base` file. Switch the view layout to **Molecules** — you'll see a grid of SVG-rendered structure cards with labels underneath.
 
 ![Molecule grid view](docs/assets/molecule-grid.png)
 
-**SMARTS substructure search with match highlighting**
+Click any card to open the corresponding note. Hover to see a larger preview with additional properties.
+
+### 3. Search
+
+Use the search bar at the top of the grid:
+
+- **Text mode** — case-insensitive filter across file names and all frontmatter properties.
+- **SMARTS mode** — toggle to SMARTS to filter by substructure pattern. Matching atoms and bonds are highlighted directly in the SVGs. A counter shows how many molecules match (e.g. "6 of 642").
 
 ![SMARTS search with match highlighting](docs/assets/smarts-search.png)
 
+### 4. Configure the view
 
-Some of the options can be configured in the view settings:
+Click the view options button to adjust per-view settings:
 
 ![View settings](docs/assets/view-settings.png)
 
-E.g by default plugin uses `smiles` frontmatter field for rendering (which is auto-added to the sdf imports), but you can change it to any other field that contains SMILES or MOL blocks (espesically useful for the CSV import when you molecular column is not named `smiles`). You can also adjust bond line width, toggle transparent background, or enable comic mode for fun hand-drawn style renderings.
+- **Molecule property** — which frontmatter field to render (`smiles` by default). Change this if your CSV uses a different column name for molecular structures.
+- **Label property** — which field to display as the card label.
+- **Card width / height** — adjust card size with sliders.
+- **Tooltip** — toggle hover previews and configure which properties to show.
+
+### 5. Plugin settings
+
+Global settings are available under **Settings > Mols2Bases**:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Remove hydrogens | off | Strip H atoms before rendering |
+| Use original coordinates | on | Use input coords; off regenerates 2D layouts |
+| Bond line width | 1.0 | Thickness of bonds in depictions |
+| Transparent background | off | Remove white background (better for dark themes) |
+| Comic mode | off | Hand-drawn style rendering |
+| Lazy render | on | Only render molecules when scrolled into view |
+| Highlight all SMARTS matches | off | Highlight every match, not just the first |
+| Align on SMARTS search | off | Align molecules to matched substructure |
+| Search delay | 300ms | Debounce delay for search input |
+| Store MOL block | on | Include full MOL block in frontmatter on SDF import |
 
 
 ## Installation
