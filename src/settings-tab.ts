@@ -13,6 +13,9 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
+    // --- Rendering ---
+    new Setting(containerEl).setName('Rendering').setHeading();
+
     new Setting(containerEl)
       .setName('Remove hydrogens')
       .setDesc('Strip hydrogen atoms from molecules before rendering.')
@@ -33,30 +36,6 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.useCoords)
           .onChange(async (value) => {
             this.plugin.settings.useCoords = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName('Store MOL block in frontmatter')
-      .setDesc('Include the full MOL block when importing SDF files. SMILES are always stored.')
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.storeMolblock)
-          .onChange(async (value) => {
-            this.plugin.settings.storeMolblock = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName('Lazy render molecules')
-      .setDesc('Only render molecule images when they scroll into view. Improves performance for large datasets.')
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.lazyRender)
-          .onChange(async (value) => {
-            this.plugin.settings.lazyRender = value;
             await this.plugin.saveSettings();
           }),
       );
@@ -101,6 +80,21 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('Lazy render molecules')
+      .setDesc('Only render molecule images when they scroll into view. Improves performance for large datasets.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.lazyRender)
+          .onChange(async (value) => {
+            this.plugin.settings.lazyRender = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    // --- Search ---
+    new Setting(containerEl).setName('Search').setHeading();
+
+    new Setting(containerEl)
       .setName('Highlight all SMARTS matches')
       .setDesc('Highlight all substructure matches in a molecule. When off, only the first match is highlighted.')
       .addToggle((toggle) =>
@@ -136,6 +130,21 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
               this.plugin.settings.searchDelay = num;
               await this.plugin.saveSettings();
             }
+          }),
+      );
+
+    // --- Import ---
+    new Setting(containerEl).setName('Import').setHeading();
+
+    new Setting(containerEl)
+      .setName('Store MOL block in frontmatter')
+      .setDesc('Include the full MOL block when importing SDF files. SMILES are always stored.')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.storeMolblock)
+          .onChange(async (value) => {
+            this.plugin.settings.storeMolblock = value;
+            await this.plugin.saveSettings();
           }),
       );
   }
