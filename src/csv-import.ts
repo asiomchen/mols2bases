@@ -1,6 +1,8 @@
 import { Notice, normalizePath } from 'obsidian';
-import { pickFile, readFileAsText, buildYaml, buildBaseFile, sanitizeFilename, uniquePath } from './import-utils';
+import { pickFile, readFileAsText, buildYaml, buildBaseFile, sanitizeFilename, uniquePath, sleep } from './import-utils';
 import type Mols2BasesPlugin from './main';
+
+const BATCH_SIZE = 50;
 
 export function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/);
@@ -99,6 +101,12 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
       await plugin.app.vault.createFolder(folderPath);
     }
 
+    // Create .base file early so the view populates as notes arrive
+    const baseContent = buildBaseFile(`${folderPath}.base`);
+    const basePath = normalizePath(`${folderPath}.base`);
+    const baseFile = await plugin.app.vault.create(basePath, baseContent);
+    await plugin.app.workspace.getLeaf(false).openFile(baseFile);
+
     // Find first non-smiles header for note naming
     const nameHeader = headers.find(h => h.toLowerCase() !== 'smiles');
 
@@ -123,17 +131,16 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
       const notePath = normalizePath(`${folderPath}/${sanitizeFilename(name)}.md`);
       const finalPath = await uniquePath(plugin.app, notePath);
       await plugin.app.vault.create(finalPath, `---\n${yaml}---\n`);
-    }
 
-    // Create .base file
-    const baseContent = buildBaseFile(`${folderPath}.base`);
-    const basePath = normalizePath(`${folderPath}.base`);
-    const baseFile = await plugin.app.vault.create(basePath, baseContent);
+      // Yield to the event loop after each batch
+      if ((i + 1) % BATCH_SIZE === 0) {
+        notice.setMessage(`Importing molecules... (${i + 1} / ${rows.length})`);
+        await sleep(0);
+      }
+    }
 
     notice.hide();
     new Notice(`Imported ${rows.length} molecules from CSV.`);
-
-    await plugin.app.workspace.getLeaf(false).openFile(baseFile);
   } catch (e) {
     notice.hide();
     new Notice(`CSV import failed: ${e}`);

@@ -62,6 +62,10 @@ export function sanitizeFilename(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, '_').substring(0, 200);
 }
 
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function uniquePath(app: App, path: string): Promise<string> {
   if (!await app.vault.adapter.exists(path)) return path;
 

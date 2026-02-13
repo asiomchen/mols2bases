@@ -1,8 +1,10 @@
 import { Notice, normalizePath } from 'obsidian';
 import { parseSdf } from './sdf-parser';
 import { getRDKit, RDKitModule } from './rdkit-loader';
-import { pickFile, readFileAsText, buildYaml, buildBaseFile, sanitizeFilename, uniquePath } from './import-utils';
+import { pickFile, readFileAsText, buildYaml, buildBaseFile, sanitizeFilename, uniquePath, sleep } from './import-utils';
 import type Mols2BasesPlugin from './main';
+
+const BATCH_SIZE = 50;
 
 export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
   const file = await pickFile('.sdf,.sd');
@@ -39,7 +41,13 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
       await plugin.app.vault.createFolder(folderPath);
     }
 
-    // Create notes for each molecule
+    // Create .base file early so the view populates as notes arrive
+    const baseContent = buildBaseFile(`${folderPath}.base`);
+    const basePath = normalizePath(`${folderPath}.base`);
+    const baseFile = await plugin.app.vault.create(basePath, baseContent);
+    await plugin.app.workspace.getLeaf(false).openFile(baseFile);
+
+    // Create notes for each molecule in batches
     for (let i = 0; i < molecules.length; i++) {
       const mol = molecules[i];
       const name = mol.properties['Name'] || mol.properties['name'] ||
@@ -82,18 +90,16 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
       // Avoid overwriting existing notes
       const finalPath = await uniquePath(plugin.app, notePath);
       await plugin.app.vault.create(finalPath, `---\n${yaml}---\n`);
-    }
 
-    // Create .base file
-    const baseContent = buildBaseFile(`${folderPath}.base`);
-    const basePath = normalizePath(`${folderPath}.base`);
-    const baseFile = await plugin.app.vault.create(basePath, baseContent);
+      // Yield to the event loop after each batch
+      if ((i + 1) % BATCH_SIZE === 0) {
+        notice.setMessage(`Importing molecules... (${i + 1} / ${molecules.length})`);
+        await sleep(0);
+      }
+    }
 
     notice.hide();
     new Notice(`Imported ${molecules.length} molecules.`);
-
-    // Open the .base file
-    await plugin.app.workspace.getLeaf(false).openFile(baseFile);
   } catch (e) {
     notice.hide();
     new Notice(`Import failed: ${e}`);
