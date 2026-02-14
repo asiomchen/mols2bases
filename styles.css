@@ -1,3 +1,7 @@
+.mol-hidden {
+  display: none;
+}
+
 .mol-grid {
   display: flex;
   flex-wrap: wrap;

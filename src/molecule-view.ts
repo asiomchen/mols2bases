@@ -133,8 +133,7 @@ export class MoleculeView extends BasesView {
     this.gridEl = this.containerEl.createDiv({ cls: 'mol-grid' });
 
     // Create tooltip element (initially hidden)
-    this.tooltipEl = this.containerEl.createDiv({ cls: 'mol-tooltip' });
-    this.tooltipEl.style.display = 'none';
+    this.tooltipEl = this.containerEl.createDiv({ cls: 'mol-tooltip mol-hidden' });
 
     // Event delegation: single click listener for all cards
     this.gridEl.addEventListener('click', (evt) => {
@@ -726,12 +725,12 @@ export class MoleculeView extends BasesView {
 
     this.tooltipEl.style.left = `${left}px`;
     this.tooltipEl.style.top = `${top}px`;
-    this.tooltipEl.style.display = 'block';
+    this.tooltipEl.classList.remove('mol-hidden');
   }
 
   private hideTooltip(): void {
     if (this.tooltipEl) {
-      this.tooltipEl.style.display = 'none';
+      this.tooltipEl.classList.add('mol-hidden');
     }
   }
 }

@@ -95,7 +95,7 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     const smilesHeader = headers.find((h) => h.toLowerCase() === 'smiles');
     if (!smilesHeader) {
       notice.hide();
-      new Notice("No 'smiles' column found in CSV.");
+      new Notice('No SMILES column found in CSV.');
       return;
     }
 

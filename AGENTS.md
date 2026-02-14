@@ -11,9 +11,10 @@ Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obs
 ```bash
 npm run dev       # Development build with inline sourcemaps
 npm run build     # Production build (minified, no sourcemaps)
-npm run lint      # Check linting + formatting (Biome)
-npm run lint:fix  # Auto-fix lint + formatting issues
-npm run format    # Format only (Biome)
+npm run lint      # Lint with ESLint (includes eslint-plugin-obsidianmd)
+npm run lint:fix  # Auto-fix ESLint issues
+npm run format    # Format with Prettier
+npm run format:check # Check formatting without writing
 npm run typecheck # Type-check without emitting (tsc --noEmit)
 ```
 
@@ -30,11 +31,11 @@ The project uses strict TypeScript with these settings (from `tsconfig.json`):
 
 ## Linting & Formatting
 
-Uses [Biome](https://biomejs.dev/) for linting and formatting, configured in `biome.json`:
-- 2-space indent, line width 100, single quotes, trailing commas
-- Recommended lint rules enabled; `noExplicitAny` and `noNonNullAssertion` disabled (Obsidian patterns)
+Uses [ESLint](https://eslint.org/) for linting and [Prettier](https://prettier.io/) for formatting:
+- **ESLint** (`eslint.config.mjs`): `@eslint/js` recommended + `typescript-eslint` recommended + [`eslint-plugin-obsidianmd`](https://github.com/obsidianmd/eslint-plugin) recommended rules. `eslint-config-prettier` disables conflicting rules. `no-explicit-any` and `no-non-null-assertion` are off (Obsidian patterns). Type info is provided via `projectService` for obsidianmd rules that need it.
+- **Prettier** (`.prettierrc.json`): 2-space indent, line width 100, single quotes, trailing commas, semicolons.
 
-**Pre-commit hook**: Husky + lint-staged auto-runs `biome check --write` on staged `.ts` files before each commit.
+**Pre-commit hook**: Husky + lint-staged auto-runs `eslint --fix` and `prettier --write` on staged `.ts` files before each commit.
 
 ## Code Style Guidelines
 
@@ -143,9 +144,10 @@ npm run dev
 npm run build
 
 # Lint & format
-npm run lint        # Check only
-npm run lint:fix    # Auto-fix
-npm run format      # Format only
+npm run lint        # ESLint check
+npm run lint:fix    # ESLint auto-fix
+npm run format      # Prettier format
+npm run format:check # Prettier check only
 npm run typecheck   # Type-check without emitting
 
 # Install in Obsidian vault

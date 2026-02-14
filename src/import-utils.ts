@@ -5,7 +5,7 @@ export function pickFile(accept: string): Promise<File | null> {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = accept;
-    input.style.display = 'none';
+    input.classList.add('mol-hidden');
     input.addEventListener('change', () => {
       const file = input.files?.[0] ?? null;
       input.remove();

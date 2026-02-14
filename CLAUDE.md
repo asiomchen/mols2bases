@@ -6,9 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `npm run build` — Production build (minified, no sourcemaps)
 - `npm run dev` — Development build (with inline sourcemaps)
-- `npm run lint` — Check linting + formatting (Biome)
-- `npm run lint:fix` — Auto-fix lint + formatting issues
-- `npm run format` — Format only (Biome)
+- `npm run lint` — Lint with ESLint (includes `eslint-plugin-obsidianmd`)
+- `npm run lint:fix` — Auto-fix ESLint issues
+- `npm run format` — Format with Prettier
+- `npm run format:check` — Check formatting without writing
 - `npm run typecheck` — Type-check without emitting (`tsc --noEmit`)
 
 Both build commands output `main.js` to the project root. RDKit WASM files (`RDKit_minimal.js` + `RDKit_minimal.wasm`) are downloaded automatically from unpkg CDN on first use and cached in the plugin directory.
@@ -17,11 +18,11 @@ No test framework is configured yet.
 
 ## Linting & Formatting
 
-Uses [Biome](https://biomejs.dev/) for linting and formatting, configured in `biome.json`:
-- 2-space indent, line width 100, single quotes, trailing commas
-- Recommended lint rules enabled; `noExplicitAny` and `noNonNullAssertion` disabled (Obsidian patterns)
+Uses [ESLint](https://eslint.org/) for linting and [Prettier](https://prettier.io/) for formatting:
+- **ESLint** (`eslint.config.mjs`): `@eslint/js` recommended + `typescript-eslint` recommended + [`eslint-plugin-obsidianmd`](https://github.com/obsidianmd/eslint-plugin) recommended rules. `eslint-config-prettier` disables conflicting rules. `no-explicit-any` and `no-non-null-assertion` are off (Obsidian patterns). Type info is provided via `projectService` for obsidianmd rules that need it.
+- **Prettier** (`.prettierrc.json`): 2-space indent, line width 100, single quotes, trailing commas, semicolons.
 
-**Pre-commit hook**: Husky + lint-staged auto-runs `biome check --write` on staged `.ts` files before each commit.
+**Pre-commit hook**: Husky + lint-staged auto-runs `eslint --fix` and `prettier --write` on staged `.ts` files before each commit.
 
 ## Architecture
 
@@ -49,7 +50,7 @@ Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obs
 - **RDKit types** are declared locally in `rdkit-loader.ts` since `@rdkit/rdkit` is only used at runtime for its WASM files, not imported as a TypeScript module.
 - **esbuild** bundles everything into CJS, externalizing `obsidian`, `electron`, and CodeMirror packages.
 - **Settings** are defined in `Mols2BasesSettings` (`src/types.ts`): `removeHs` (bool, default false — strip Hs before render), `useCoords` (bool, default true — use input coords; false regenerates 2D), `storeMolblock` (bool, default true — include MOL block in frontmatter on SDF import), `lazyRender` (bool, default true — defer rendering to IntersectionObserver), `searchDelay` (number, default 300 — debounce delay in ms for search input), `smartsMatchAll` (bool, default false — highlight all SMARTS matches instead of just the first), `bondLineWidth` (number, default 1.0 — thickness of bonds in SVGs), `transparentBg` (bool, default false — remove white background from SVGs), `comicMode` (bool, default false — hand-drawn style rendering).
-- **TypeScript** uses `strict: true`. **Biome** handles linting + formatting (see `biome.json`).
+- **TypeScript** uses `strict: true`. **ESLint** handles linting (see `eslint.config.mjs`), **Prettier** handles formatting (see `.prettierrc.json`).
 
 ## Docs
 
