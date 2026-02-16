@@ -93,14 +93,11 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     }
 
     // Auto-detect SMILES column (case-insensitive)
-    const smilesHeader = headers.find((h) => h.toLowerCase() === 'smiles');
-    if (!smilesHeader) {
-      notice.hide();
-      new Notice('No SMILES column found in CSV.');
-      return;
-    }
+    const smilesHeader = headers.find(
+      (h) => h.toLowerCase() === plugin.settings.csvSmilesField.toLowerCase(),
+    );
 
-    notice.setMessage(`Importing ${rows.length} molecules...`);
+    notice.setMessage(`Importing ${rows.length} rows...`);
 
     // Create folder based on filename
     const baseName = file.name.replace(/\.csv$/i, '');
@@ -111,28 +108,40 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     }
 
     // Create .base file early so the view populates as notes arrive
-    const baseContent = buildBaseFile(`${folderPath}.base`);
+    const baseContent = buildBaseFile(
+      `${folderPath}.base`,
+      smilesHeader ? `note.${plugin.settings.csvSmilesField}` : undefined,
+    );
     const basePath = normalizePath(`${folderPath}.base`);
     const baseFile = await plugin.app.vault.create(basePath, baseContent);
     await plugin.app.workspace.getLeaf(false).openFile(baseFile);
 
+    // Show warning if no SMILES column was found
+    if (!smilesHeader) {
+      new Notice(
+        `No "${plugin.settings.csvSmilesField}" column found — select the molecule property in the view options.`,
+        5000,
+      );
+    }
+
     // Find first non-smiles header for note naming
-    const nameHeader = headers.find((h) => h.toLowerCase() !== 'smiles');
+    const nameHeader = headers.find((h) => h !== smilesHeader);
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const name = (nameHeader && row[nameHeader]?.trim()) || `molecule_${i + 1}`;
+      const name = (nameHeader && row[nameHeader]?.trim()) || `row_${i + 1}`;
 
       // Build frontmatter
       const frontmatter: Record<string, string> = {};
-      frontmatter.smiles = row[smilesHeader];
+      if (smilesHeader) {
+        frontmatter[smilesHeader] = row[smilesHeader];
+      }
       frontmatter[INTERNAL_KEYS.LINK] = `[[${baseName}.base]]`;
 
       for (const [key, value] of Object.entries(row)) {
-        if (key === smilesHeader) continue;
-        const safeKey = key.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        if (safeKey && !frontmatter[safeKey]) {
-          frontmatter[safeKey] = value;
+        if (smilesHeader && key === smilesHeader) continue;
+        if (!frontmatter[key]) {
+          frontmatter[key] = value;
         }
       }
 
@@ -143,13 +152,13 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
 
       // Yield to the event loop after each batch
       if ((i + 1) % BATCH_SIZE === 0) {
-        notice.setMessage(`Importing molecules... (${i + 1} / ${rows.length})`);
+        notice.setMessage(`Importing rows... (${i + 1} / ${rows.length})`);
         await sleep(0);
       }
     }
 
     notice.hide();
-    new Notice(`Imported ${rows.length} molecules from CSV.`);
+    new Notice(`Imported ${rows.length} rows from CSV.`);
   } catch (e) {
     notice.hide();
     new Notice(`CSV import failed: ${String(e)}`);
