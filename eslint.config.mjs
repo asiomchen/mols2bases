@@ -1,24 +1,19 @@
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import obsidianmd from 'eslint-plugin-obsidianmd';
-import eslintConfigPrettier from 'eslint-config-prettier';
+// eslint.config.mjs
+import tsparser from "@typescript-eslint/parser";
+import { defineConfig } from "eslint/config";
+import obsidianmd from "eslint-plugin-obsidianmd";
 
-export default tseslint.config(
-  { ignores: ['main.js', 'dist/', 'node_modules/'] },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommended,
+export default defineConfig([
+  ...obsidianmd.configs.recommended,
   {
+    files: ["**/*.ts"],
     languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
+      parser: tsparser,
+      parserOptions: { project: "./tsconfig.json" },
     },
-  },
-  {
-    plugins: { obsidianmd },
+
+    // You can add your own configuration to override or add rules
     rules: {
-      ...obsidianmd.configs.recommended,
       'obsidianmd/ui/sentence-case': [
         'error',
         {
@@ -28,12 +23,4 @@ export default tseslint.config(
       ],
     },
   },
-  eslintConfigPrettier,
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    },
-  },
-);
+]);
