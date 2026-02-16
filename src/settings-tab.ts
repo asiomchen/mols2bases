@@ -133,5 +133,17 @@ export class Mols2BasesSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }),
       );
+
+    new Setting(containerEl)
+      .setName('CSV SMILES field name')
+      .setDesc('Name of the frontmatter property to use for SMILES when importing CSV files.')
+      .addText((text) =>
+        text.setValue(this.plugin.settings.csvSmilesField).onChange(async (value) => {
+          if (value.trim()) {
+            this.plugin.settings.csvSmilesField = value.trim();
+            await this.plugin.saveSettings();
+          }
+        }),
+      );
   }
 }

@@ -16,6 +16,7 @@ export interface Mols2BasesSettings {
   bondLineWidth: number;
   transparentBg: boolean;
   comicMode: boolean;
+  csvSmilesField: string;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   bondLineWidth: 1.0,
   transparentBg: false,
   comicMode: false,
+  csvSmilesField: 'smiles',
 };
 
 export const CONFIG_KEYS = {
@@ -37,6 +39,12 @@ export const CONFIG_KEYS = {
   CARD_WIDTH: 'cardWidth',
   CARD_HEIGHT: 'cardHeight',
   TOOLTIP_ENABLED: 'tooltipEnabled',
-  TOOLTIP_MOLECULE_SIZE: 'tooltipMoleculeSize',
   TOOLTIP_PROPERTIES: 'tooltipProperties',
+} as const;
+
+export const INTERNAL_PREFIX = '_m2b_';
+export const INTERNAL_KEYS = {
+  MOLBLOCK: '_m2b_molblock',
+  LINK: '_m2b_link',
+  SMILES: '_m2b_smiles',
 } as const;

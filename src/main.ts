@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { type BasesViewConfig, Plugin, type QueryController } from 'obsidian';
 import { importCsv } from './csv-import';
 import { MoleculeView } from './molecule-view';
 import { cleanupRDKit } from './rdkit-loader';
@@ -15,9 +15,9 @@ export default class Mols2BasesPlugin extends Plugin {
     this.registerBasesView(VIEW_TYPE_MOLECULES, {
       name: 'Molecules',
       icon: 'lucide-flask-conical',
-      factory: (controller: any, containerEl: HTMLElement) =>
+      factory: (controller: QueryController, containerEl: HTMLElement) =>
         new MoleculeView(controller, containerEl, this),
-      options: MoleculeView.getViewOptions,
+      options: (config: BasesViewConfig) => MoleculeView.getViewOptions(config),
     });
 
     this.addCommand({
@@ -36,7 +36,11 @@ export default class Mols2BasesPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.settings = Object.assign(
+      {},
+      DEFAULT_SETTINGS,
+      (await this.loadData()) as Partial<Mols2BasesSettings>,
+    );
   }
 
   async saveSettings(): Promise<void> {

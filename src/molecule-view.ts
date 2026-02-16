@@ -1,8 +1,21 @@
+/* global document, setTimeout, clearTimeout, requestAnimationFrame, IntersectionObserver, DOMParser */
 import type { BasesAllOptions } from 'obsidian';
 import { type BasesEntry, BasesView, type BasesViewConfig, type QueryController } from 'obsidian';
 import type Mols2BasesPlugin from './main';
 import { getRDKit, type RDKitModule, type RDKitMol } from './rdkit-loader';
-import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
+import { CONFIG_KEYS, INTERNAL_PREFIX, VIEW_TYPE_MOLECULES } from './types';
+
+interface SubstructMatch {
+  atoms: number[];
+  bonds: number[];
+}
+
+function setSvgContent(el: HTMLElement, svgString: string): void {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, 'image/svg+xml');
+  const svgEl = doc.documentElement;
+  el.replaceChildren(svgEl);
+}
 
 interface CardInfo {
   card: HTMLElement;
@@ -78,15 +91,6 @@ export class MoleculeView extends BasesView {
         default: true,
       },
       {
-        type: 'slider',
-        key: CONFIG_KEYS.TOOLTIP_MOLECULE_SIZE,
-        displayName: 'Tooltip molecule size',
-        min: 200,
-        max: 600,
-        step: 50,
-        default: 400,
-      },
-      {
         type: 'text',
         key: CONFIG_KEYS.TOOLTIP_PROPERTIES,
         displayName: 'Tooltip properties (comma-separated)',
@@ -140,7 +144,7 @@ export class MoleculeView extends BasesView {
       const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
       if (!card) return;
       const entry = this.entryMap.get(card);
-      if (entry) this.plugin.app.workspace.getLeaf(false).openFile(entry.file);
+      if (entry) void this.plugin.app.workspace.getLeaf(false).openFile(entry.file);
     });
 
     // Event delegation: tooltip on hover
@@ -148,7 +152,9 @@ export class MoleculeView extends BasesView {
       const card = (evt.target as HTMLElement).closest('.mol-card') as HTMLElement;
       if (!card) return;
       if (this.tooltipTimeout) clearTimeout(this.tooltipTimeout);
-      this.tooltipTimeout = setTimeout(() => this.showTooltip(card), 300);
+      this.tooltipTimeout = setTimeout(() => {
+        void this.showTooltip(card);
+      }, 300);
     });
 
     this.gridEl.addEventListener('mouseout', (evt) => {
@@ -184,7 +190,11 @@ export class MoleculeView extends BasesView {
     }
   }
 
-  async onDataUpdated(): Promise<void> {
+  onDataUpdated(): void {
+    void this.doDataUpdate();
+  }
+
+  private async doDataUpdate(): Promise<void> {
     if (!this.gridEl) return;
     this.observer?.disconnect();
     this.gridEl.empty();
@@ -194,8 +204,8 @@ export class MoleculeView extends BasesView {
 
     const molPropId = this.config.getAsPropertyId(CONFIG_KEYS.MOLECULE_PROPERTY);
     const labelPropId = this.config.getAsPropertyId(CONFIG_KEYS.LABEL_PROPERTY);
-    const cardWidth = this.config.get(CONFIG_KEYS.CARD_WIDTH) ?? 200;
-    const cardHeight = this.config.get(CONFIG_KEYS.CARD_HEIGHT) ?? 240;
+    const cardWidth = (this.config.get(CONFIG_KEYS.CARD_WIDTH) as number) ?? 200;
+    const cardHeight = (this.config.get(CONFIG_KEYS.CARD_HEIGHT) as number) ?? 240;
 
     if (!molPropId) {
       this.gridEl.createDiv({
@@ -211,7 +221,7 @@ export class MoleculeView extends BasesView {
     } catch (e) {
       this.gridEl.createDiv({
         cls: 'mol-card-error',
-        text: `Failed to load RDKit: ${e}`,
+        text: `Failed to load RDKit: ${String(e)}`,
       });
       return;
     }
@@ -223,9 +233,9 @@ export class MoleculeView extends BasesView {
     // Helper: create a card element for one entry
     const createCard = (entry: BasesEntry): CardInfo => {
       const molValue = entry.getValue(molPropId);
-      const molStr = molValue ? molValue.toString() : '';
+      const molStr = molValue ? String(molValue) : '';
       const labelValue = labelPropId ? entry.getValue(labelPropId) : null;
-      const label = labelValue ? labelValue.toString() : entry.file.basename;
+      const label = labelValue ? String(labelValue) : entry.file.basename;
 
       const card = document.createElement('div');
       card.className = 'mol-card';
@@ -259,7 +269,7 @@ export class MoleculeView extends BasesView {
       }
       const svg = this.renderMolecule(rdkit, molStr);
       if (svg) {
-        svgContainer.innerHTML = svg;
+        setSvgContent(svgContainer, svg);
       } else {
         const err = document.createElement('div');
         err.className = 'mol-card-error';
@@ -281,7 +291,7 @@ export class MoleculeView extends BasesView {
             delete el.dataset.mol;
             const svg = this.renderMolecule(rdkit, molStr);
             if (svg) {
-              el.innerHTML = svg;
+              setSvgContent(el, svg);
             } else {
               const err = document.createElement('div');
               err.className = 'mol-card-error';
@@ -306,7 +316,7 @@ export class MoleculeView extends BasesView {
           const cacheKey = this.baseCacheKey(molStr);
           const cached = this.svgCache.get(cacheKey);
           if (cached) {
-            svgContainer.innerHTML = cached;
+            setSvgContent(svgContainer, cached);
           } else {
             svgContainer.dataset.mol = molStr;
             this.observer.observe(svgContainer);
@@ -398,11 +408,15 @@ export class MoleculeView extends BasesView {
 
       // Check frontmatter properties
       if (!matches) {
-        const fm = this.plugin.app.metadataCache.getFileCache(info.entry.file)?.frontmatter;
+        const fm = this.plugin.app.metadataCache.getFileCache(info.entry.file)?.frontmatter as
+          | Record<string, unknown>
+          | undefined;
         if (fm) {
           for (const key of Object.keys(fm)) {
+            if (key.startsWith(INTERNAL_PREFIX)) continue;
             const val = fm[key];
-            if (val != null && String(val).toLowerCase().includes(lowerQuery)) {
+            const valStr = typeof val === 'string' ? val : JSON.stringify(val);
+            if (val != null && valStr.toLowerCase().includes(lowerQuery)) {
               matches = true;
               break;
             }
@@ -461,7 +475,7 @@ export class MoleculeView extends BasesView {
 
         if (smartsMatchAll) {
           const matchesJson = mol.get_substruct_matches(qmol);
-          const matches: Array<{ atoms: number[]; bonds: number[] }> = JSON.parse(matchesJson);
+          const matches = JSON.parse(matchesJson) as SubstructMatch[];
           if (!matches.length || !matches[0].atoms?.length) {
             info.card.setAttribute('data-hidden', '');
             this.restoreOriginalSvg(info);
@@ -477,7 +491,7 @@ export class MoleculeView extends BasesView {
           bonds = [...bondSet];
         } else {
           const matchJson = mol.get_substruct_match(qmol);
-          const match = JSON.parse(matchJson);
+          const match = JSON.parse(matchJson) as SubstructMatch;
           if (!match.atoms || !match.atoms.length) {
             info.card.setAttribute('data-hidden', '');
             this.restoreOriginalSvg(info);
@@ -495,7 +509,7 @@ export class MoleculeView extends BasesView {
         const cachedHighlight = this.svgCache.get(highlightKey);
         delete info.svgContainer.dataset.mol;
         if (cachedHighlight) {
-          info.svgContainer.innerHTML = cachedHighlight;
+          setSvgContent(info.svgContainer, cachedHighlight);
         } else {
           if (!useCoords) mol.set_new_coords();
           if (alignOnSmarts) mol.generate_aligned_coords(qmol, '');
@@ -508,7 +522,7 @@ export class MoleculeView extends BasesView {
             const details = this.getDrawDetails({ atoms, bonds });
             const svg = (renderMol ?? mol).get_svg_with_highlights(details);
             this.svgCache.set(highlightKey, svg);
-            info.svgContainer.innerHTML = svg;
+            setSvgContent(info.svgContainer, svg);
           } finally {
             if (renderMol) renderMol.delete();
           }
@@ -528,7 +542,7 @@ export class MoleculeView extends BasesView {
     const cacheKey = this.baseCacheKey(info.molStr);
     const cached = this.svgCache.get(cacheKey);
     if (cached) {
-      info.svgContainer.innerHTML = cached;
+      setSvgContent(info.svgContainer, cached);
     } else if (info.molStr.trim() && !info.svgContainer.dataset.mol) {
       // Lazy container that was modified by a filter — restore dataset.mol
       // so the observer can render it when re-observed
@@ -599,10 +613,6 @@ export class MoleculeView extends BasesView {
     return (this.config.get(CONFIG_KEYS.TOOLTIP_ENABLED) as boolean) ?? true;
   }
 
-  private getTooltipMoleculeSize(): number {
-    return (this.config.get(CONFIG_KEYS.TOOLTIP_MOLECULE_SIZE) as number) ?? 400;
-  }
-
   private getTooltipProperties(): string[] {
     const propStr = (this.config.get(CONFIG_KEYS.TOOLTIP_PROPERTIES) as string) ?? '';
     if (!propStr.trim()) return [];
@@ -619,95 +629,53 @@ export class MoleculeView extends BasesView {
     const entry = this.entryMap.get(card);
     if (!entry) return;
 
-    const info = this.cardInfos.find((i) => i.entry === entry);
-    if (!info || !info.molStr.trim()) return;
-
-    const molPropId = this.config.getAsPropertyId(CONFIG_KEYS.MOLECULE_PROPERTY);
-    if (!molPropId) return;
-
-    const tooltipSize = this.getTooltipMoleculeSize();
     const tooltipProps = this.getTooltipProperties();
 
-    let rdkit = this.rdkitRef;
-    if (!rdkit) {
-      try {
-        rdkit = await getRDKit(this.plugin);
-        this.rdkitRef = rdkit;
-      } catch {
-        return;
+    const fm = this.plugin.app.metadataCache.getFileCache(entry.file)?.frontmatter as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!fm || Object.keys(fm).length === 0) return;
+
+    const keys =
+      tooltipProps.length > 0
+        ? tooltipProps.filter((k) => k in fm)
+        : Object.keys(fm).filter((k) => k !== 'position' && !k.startsWith(INTERNAL_PREFIX));
+
+    if (keys.length === 0) return;
+
+    const propsEl = document.createElement('div');
+    propsEl.className = 'mol-tooltip-props';
+    for (const key of keys) {
+      const val = fm[key];
+      if (val != null) {
+        const propEl = document.createElement('div');
+        propEl.className = 'mol-tooltip-prop';
+        const keySpan = document.createElement('span');
+        keySpan.className = 'mol-tooltip-prop-key';
+        keySpan.textContent = `${key}:`;
+        const valSpan = document.createElement('span');
+        valSpan.className = 'mol-tooltip-prop-value';
+        valSpan.textContent = typeof val === 'string' ? val : JSON.stringify(val);
+        propEl.appendChild(keySpan);
+        propEl.appendChild(valSpan);
+        propsEl.appendChild(propEl);
       }
     }
 
-    const cacheKey = `${this.baseCacheKey(info.molStr)}||size=${tooltipSize}`;
-    let svg = this.svgCache.get(cacheKey);
-
-    if (!svg) {
-      let mol = null;
-      let renderMol = null;
-      try {
-        mol = rdkit?.get_mol(info.molStr);
-        if (!mol || !mol.is_valid()) return;
-
-        if (!this.plugin.settings.useCoords) {
-          mol.set_new_coords();
-        }
-
-        if (this.plugin.settings.removeHs) {
-          const molblockNoHs = mol.remove_hs();
-          renderMol = rdkit?.get_mol(molblockNoHs);
-          if (!renderMol || !renderMol.is_valid()) return;
-        }
-
-        svg = (renderMol ?? mol).get_svg_with_highlights(this.getDrawDetails());
-        if (svg) this.svgCache.set(cacheKey, svg);
-      } catch {
-        return;
-      } finally {
-        if (renderMol) renderMol.delete();
-        if (mol) mol.delete();
-      }
-    }
-
-    if (!svg) return;
-
-    const fm = this.plugin.app.metadataCache.getFileCache(entry.file)?.frontmatter;
-    let propsHtml = '';
-    if (fm && Object.keys(fm).length > 0) {
-      const keys =
-        tooltipProps.length > 0
-          ? tooltipProps.filter((k) => k in fm)
-          : Object.keys(fm).filter((k) => k !== 'position');
-
-      if (keys.length > 0) {
-        propsHtml = '<div class="mol-tooltip-props">';
-        for (const key of keys) {
-          const val = fm[key];
-          if (val != null) {
-            propsHtml += `<div class="mol-tooltip-prop">
-              <span class="mol-tooltip-prop-key">${key}:</span>
-              <span class="mol-tooltip-prop-value">${String(val)}</span>
-            </div>`;
-          }
-        }
-        propsHtml += '</div>';
-      }
-    }
-
-    this.tooltipEl.innerHTML = `
-      <div class="mol-tooltip-svg" style="width: ${tooltipSize}px; height: ${tooltipSize}px;">${svg}</div>
-      ${propsHtml}
-    `;
+    this.tooltipEl.replaceChildren(propsEl);
 
     const cardRect = card.getBoundingClientRect();
     const containerRect = this.containerEl.getBoundingClientRect();
     const tooltipRect = this.tooltipEl.getBoundingClientRect();
 
-    const tooltipHeight = tooltipRect.height || tooltipSize + (propsHtml ? 150 : 0);
+    const tooltipWidth = tooltipRect.width;
+    const tooltipHeight = tooltipRect.height;
 
     const spaceAbove = cardRect.top - containerRect.top;
     const spaceBelow = containerRect.height - (cardRect.bottom - containerRect.top);
 
-    let left = cardRect.left - containerRect.left + cardRect.width / 2 - tooltipSize / 2;
+    let left = cardRect.left - containerRect.left + cardRect.width / 2 - tooltipWidth / 2;
     let top: number;
 
     if (spaceAbove >= tooltipHeight + 8) {
@@ -719,7 +687,7 @@ export class MoleculeView extends BasesView {
     }
 
     if (left < 8) left = 8;
-    if (left + tooltipSize > containerRect.width) left = containerRect.width - tooltipSize - 8;
+    if (left + tooltipWidth > containerRect.width) left = containerRect.width - tooltipWidth - 8;
     if (top < 8) top = 8;
     if (top + tooltipHeight > containerRect.height) top = containerRect.height - tooltipHeight - 8;
 

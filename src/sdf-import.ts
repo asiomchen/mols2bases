@@ -11,6 +11,7 @@ import {
 import type Mols2BasesPlugin from './main';
 import { getRDKit, type RDKitModule } from './rdkit-loader';
 import { parseSdf } from './sdf-parser';
+import { INTERNAL_KEYS } from './types';
 
 const BATCH_SIZE = 50;
 
@@ -37,7 +38,7 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
       rdkit = await getRDKit(plugin);
     } catch (e) {
       notice.hide();
-      new Notice(`Failed to load RDKit: ${e}`);
+      new Notice(`Failed to load RDKit: ${String(e)}`);
       return;
     }
 
@@ -50,7 +51,10 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     }
 
     // Create .base file early so the view populates as notes arrive
-    const baseContent = buildBaseFile(`${folderPath}.base`);
+    const molProp = plugin.settings.storeMolblock
+      ? `note.${INTERNAL_KEYS.MOLBLOCK}`
+      : `note.${INTERNAL_KEYS.SMILES}`;
+    const baseContent = buildBaseFile(`${folderPath}.base`, molProp);
     const basePath = normalizePath(`${folderPath}.base`);
     const baseFile = await plugin.app.vault.create(basePath, baseContent);
     await plugin.app.workspace.getLeaf(false).openFile(baseFile);
@@ -82,11 +86,11 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
 
       // Build frontmatter
       const frontmatter: Record<string, string> = {};
-      if (smiles) frontmatter.smiles = smiles;
+      if (smiles) frontmatter[INTERNAL_KEYS.SMILES] = smiles;
       if (plugin.settings.storeMolblock) {
-        frontmatter.molblock = mol.molblock;
+        frontmatter[INTERNAL_KEYS.MOLBLOCK] = mol.molblock;
       }
-      frontmatter._mols2bases = `[[${baseName}.base]]`;
+      frontmatter[INTERNAL_KEYS.LINK] = `[[${baseName}.base]]`;
 
       // Add all SDF properties
       for (const [key, value] of Object.entries(mol.properties)) {
@@ -114,6 +118,6 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     new Notice(`Imported ${molecules.length} molecules.`);
   } catch (e) {
     notice.hide();
-    new Notice(`Import failed: ${e}`);
+    new Notice(`Import failed: ${String(e)}`);
   }
 }

@@ -1,3 +1,4 @@
+/* global document, setTimeout, FileReader */
 import type { App } from 'obsidian';
 
 export function pickFile(accept: string): Promise<File | null> {
@@ -24,7 +25,7 @@ export function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'));
     reader.readAsText(file);
   });
 }
@@ -45,15 +46,17 @@ export function buildYaml(props: Record<string, string>): string {
   return `${lines.join('\n')}\n`;
 }
 
-export function buildBaseFile(baseName: string): string {
+export function buildBaseFile(baseName: string, moleculeProperty?: string): string {
+  const moleculePropertyLine = moleculeProperty
+    ? `    moleculeProperty: ${moleculeProperty}\n`
+    : '';
   return `filters:
   and:
     - file.hasLink("${baseName}")
 views:
   - type: "molecules"
     name: "Molecules"
-    moleculeProperty: note.smiles
-  - type: "table"
+${moleculePropertyLine}  - type: "table"
     name: "Table"
 `;
 }

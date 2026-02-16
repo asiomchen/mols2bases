@@ -2,6 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Overview
+
+- **Target**: Obsidian Community Plugin (TypeScript → bundled JavaScript).
+- **Entry point**: `src/main.ts` compiled to `main.js` and loaded by Obsidian.
+- **Required release artifacts**: `main.js`, `manifest.json`, and optional `styles.css`.
+
+Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obsidian ≥1.10.0). Uses RDKit.js for rendering molecular structures. Features: molecule grid view (with text + SMARTS search and lazy rendering), SDF import, and CSV import.
+
+## Environment & Tooling
+
+- **Node.js**: use current LTS (Node 18+ recommended).
+- **Package manager**: npm (required - `package.json` defines npm scripts and dependencies).
+- **Bundler**: esbuild (required - `esbuild.config.mjs` and build scripts depend on it).
+- **Types**: `obsidian` type definitions.
+
+## Install
+
+```bash
+npm install
+```
+
 ## Build Commands
 
 - `npm run build` — Production build (minified, no sourcemaps)
@@ -14,19 +35,123 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Both build commands output `main.js` to the project root. RDKit WASM files (`RDKit_minimal.js` + `RDKit_minimal.wasm`) are downloaded automatically from unpkg CDN on first use and cached in the plugin directory.
 
-No test framework is configured yet.
+**No test framework is configured yet.**
+
+## TypeScript Configuration
+
+The project uses strict TypeScript with these settings (from `tsconfig.json`):
+
+- `strict: true`
+- `moduleResolution: node`
+- Target: ES2020
 
 ## Linting & Formatting
 
 Uses [ESLint](https://eslint.org/) for linting and [Prettier](https://prettier.io/) for formatting:
+
 - **ESLint** (`eslint.config.mjs`): `@eslint/js` recommended + `typescript-eslint` recommended + [`eslint-plugin-obsidianmd`](https://github.com/obsidianmd/eslint-plugin) recommended rules. `eslint-config-prettier` disables conflicting rules. `no-explicit-any` and `no-non-null-assertion` are off (Obsidian patterns). Type info is provided via `projectService` for obsidianmd rules that need it.
 - **Prettier** (`.prettierrc.json`): 2-space indent, line width 100, single quotes, trailing commas, semicolons.
 
 **Pre-commit hook**: Husky + lint-staged auto-runs `eslint --fix` and `prettier --write` on staged `.ts` files before each commit.
 
+## File & Folder Conventions
+
+- **Organize code into multiple files**: Split functionality across separate modules rather than putting everything in `main.ts`.
+- Source lives in `src/`. Keep `main.ts` small and focused on plugin lifecycle (loading, unloading, registering commands).
+
+```
+src/
+  main.ts          # Plugin entry point
+  molecule-view.ts # MoleculeView extends BasesView (grid, search, lazy render)
+  rdkit-loader.ts  # RDKit WASM lazy loader + types
+  sdf-parser.ts    # Pure function parseSdf()
+  sdf-import.ts    # SDF import command
+  csv-import.ts    # CSV import command
+  import-utils.ts  # Shared file import helpers
+  types.ts         # Interfaces and constants
+  settings-tab.ts  # Settings UI
+```
+
+## Manifest Rules (`manifest.json`)
+
+- Must include: `id`, `name`, `version` (Semantic Versioning `x.y.z`), `minAppVersion`, `description`, `isDesktopOnly` (boolean)
+- Optional: `author`, `authorUrl`, `fundingUrl`
+- Never change `id` after release. Treat it as stable API.
+- Keep `minAppVersion` accurate when using newer APIs.
+
+## Testing
+
+Manual install for testing: copy `main.js`, `manifest.json`, `styles.css` (if any) to:
+
+```
+<Vault>/.obsidian/plugins/<plugin-id>/
+```
+
+Reload Obsidian and enable the plugin in **Settings → Community plugins**.
+
+## Commands & Settings
+
+- Any user-facing commands should be added via `this.addCommand(...)`.
+- If the plugin has configuration, provide a settings tab and sensible defaults.
+- Persist settings using `this.loadData()` / `this.saveData()`.
+- Use stable command IDs; avoid renaming once released.
+
+## Versioning & Releases
+
+- Bump `version` in `manifest.json` (SemVer) and update `versions.json` to map plugin version → minimum app version.
+- Create a GitHub release whose tag exactly matches `manifest.json`'s `version`. Do not use a leading `v`.
+- Attach `manifest.json`, `main.js`, and `styles.css` (if present) to the release as individual assets.
+
+## Security, Privacy, and Compliance
+
+- Default to local/offline operation. Only make network requests when essential to the feature.
+- No hidden telemetry. If you collect optional analytics or call third-party services, require explicit opt-in and document clearly.
+- Never execute remote code, fetch and eval scripts, or auto-update plugin code outside of normal releases.
+- Minimize scope: read/write only what's necessary inside the vault. Do not access files outside the vault.
+- Clearly disclose any external services used, data sent, and risks.
+- Respect user privacy. Do not collect vault contents, filenames, or personal information unless absolutely necessary and explicitly consented.
+- Avoid deceptive patterns, ads, or spammy notifications.
+- Register and clean up all DOM, app, and interval listeners using the provided `register*` helpers so the plugin unloads safely.
+
+## UX & Copy Guidelines
+
+- Prefer sentence case for headings, buttons, and titles.
+- Use clear, action-oriented imperatives in step-by-step copy.
+- Use **bold** to indicate literal UI labels. Prefer "select" for interactions.
+- Use arrow notation for navigation: **Settings → Community plugins**.
+- Keep in-app strings short, consistent, and free of jargon.
+
+## Performance
+
+- Keep startup light. Defer heavy work until needed.
+- Avoid long-running tasks during `onload`; use lazy initialization.
+- Batch disk access and avoid excessive vault scans.
+- Debounce/throttle expensive operations in response to file system events.
+
+## Mobile
+
+- Where feasible, test on iOS and Android.
+- Don't assume desktop-only behavior unless `isDesktopOnly` is `true`.
+- Avoid large in-memory structures; be mindful of memory and storage constraints.
+
+## Agent Do/Don't
+
+**Do**
+
+- Add commands with stable IDs (don't rename once released).
+- Provide defaults and validation in settings.
+- Write idempotent code paths so reload/unload doesn't leak listeners or intervals.
+- Use `this.register*` helpers for everything that needs cleanup.
+
+**Don't**
+
+- Introduce network calls without an obvious user-facing reason and documentation.
+- Ship features that require cloud services without clear disclosure and explicit opt-in.
+- Store or transmit vault contents unless essential and consented.
+
 ## Architecture
 
-Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obsidian ≥1.10.0). Features:
+Obsidian plugin that adds molecule visualization to Obsidian Bases. Features:
 
 1. **Molecule Grid View** — A custom Bases view type (`molecules`) rendering molecular structures as SVG cards via RDKit.js. Supports text search (filename/frontmatter) and SMARTS substructure search with match highlighting. Lazy rendering via IntersectionObserver for large datasets.
 2. **SDF Import** — A command that parses SDF files into one-note-per-molecule with frontmatter properties, plus a `.base` file
@@ -49,12 +174,7 @@ Obsidian plugin that adds molecule visualization to Obsidian Bases (requires Obs
 - **Bases API** (not yet in public obsidian typings): `registerBasesView(id, { name, icon, factory, options })`. The view accesses data via `this.data.data` (array of `BasesEntry`), config via `this.config.get(key)` / `this.config.getAsPropertyId(key)`. Lifecycle: constructor → `onload()` → `onDataUpdated()` (repeats) → `onunload()`.
 - **RDKit types** are declared locally in `rdkit-loader.ts` since `@rdkit/rdkit` is only used at runtime for its WASM files, not imported as a TypeScript module.
 - **esbuild** bundles everything into CJS, externalizing `obsidian`, `electron`, and CodeMirror packages.
-- **Settings** are defined in `Mols2BasesSettings` (`src/types.ts`): `removeHs` (bool, default false — strip Hs before render), `useCoords` (bool, default true — use input coords; false regenerates 2D), `storeMolblock` (bool, default true — include MOL block in frontmatter on SDF import), `lazyRender` (bool, default true — defer rendering to IntersectionObserver), `searchDelay` (number, default 300 — debounce delay in ms for search input), `smartsMatchAll` (bool, default false — highlight all SMARTS matches instead of just the first), `bondLineWidth` (number, default 1.0 — thickness of bonds in SVGs), `transparentBg` (bool, default false — remove white background from SVGs), `comicMode` (bool, default false — hand-drawn style rendering).
-- **TypeScript** uses `strict: true`. **ESLint** handles linting (see `eslint.config.mjs`), **Prettier** handles formatting (see `.prettierrc.json`).
-
-## Docs
-
-- `docs/features.md` — List of implemented features, kept up to date as new functionality is added.
+- **Settings** are defined in `Mols2BasesSettings` (`src/types.ts`): `removeHs` (bool, default false), `useCoords` (bool, default true), `storeMolblock` (bool, default true), `lazyRender` (bool, default true), `searchDelay` (number, default 300), `smartsMatchAll` (bool, default false), `bondLineWidth` (number, default 1.0), `transparentBg` (bool, default false), `comicMode` (bool, default false).
 
 ## Keeping docs in sync
 

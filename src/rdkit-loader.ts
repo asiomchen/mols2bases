@@ -1,3 +1,4 @@
+/* global document, window, URL, Blob */
 import { Notice, type Plugin, requestUrl } from 'obsidian';
 
 // RDKit module type (minimal interface we need)
@@ -23,6 +24,12 @@ export interface RDKitMol {
 const RDKIT_VERSION = '2025.3.4-1.0.0';
 const RDKIT_CDN_BASE = `https://unpkg.com/@rdkit/rdkit@${RDKIT_VERSION}/dist`;
 const RDKIT_FILES = ['RDKit_minimal.js', 'RDKit_minimal.wasm'] as const;
+
+declare global {
+  interface Window {
+    initRDKitModule?: (options: { wasmBinary: Uint8Array }) => Promise<RDKitModule>;
+  }
+}
 
 let rdkitInstance: RDKitModule | null = null;
 let rdkitPromise: Promise<RDKitModule> | null = null;
@@ -102,16 +109,16 @@ async function loadRDKit(plugin: Plugin): Promise<RDKitModule> {
   });
 
   // initRDKitModule is now available on the global scope
-  const initRDKitModule = (window as any).initRDKitModule;
+  const initRDKitModule = window.initRDKitModule;
   if (!initRDKitModule) {
     throw new Error('initRDKitModule not found after script injection');
   }
 
-  const module = await initRDKitModule({
+  const module: RDKitModule = await initRDKitModule({
     wasmBinary: new Uint8Array(wasmBinary),
   });
 
-  return module as RDKitModule;
+  return module;
 }
 
 export function cleanupRDKit(): void {
