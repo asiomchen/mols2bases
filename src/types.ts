@@ -37,6 +37,5 @@ export const CONFIG_KEYS = {
   CARD_WIDTH: 'cardWidth',
   CARD_HEIGHT: 'cardHeight',
   TOOLTIP_ENABLED: 'tooltipEnabled',
-  TOOLTIP_MOLECULE_SIZE: 'tooltipMoleculeSize',
   TOOLTIP_PROPERTIES: 'tooltipProperties',
 } as const;

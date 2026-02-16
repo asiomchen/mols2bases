@@ -91,15 +91,6 @@ export class MoleculeView extends BasesView {
         default: true,
       },
       {
-        type: 'slider',
-        key: CONFIG_KEYS.TOOLTIP_MOLECULE_SIZE,
-        displayName: 'Tooltip molecule size',
-        min: 200,
-        max: 600,
-        step: 50,
-        default: 400,
-      },
-      {
         type: 'text',
         key: CONFIG_KEYS.TOOLTIP_PROPERTIES,
         displayName: 'Tooltip properties (comma-separated)',
@@ -621,10 +612,6 @@ export class MoleculeView extends BasesView {
     return (this.config.get(CONFIG_KEYS.TOOLTIP_ENABLED) as boolean) ?? true;
   }
 
-  private getTooltipMoleculeSize(): number {
-    return (this.config.get(CONFIG_KEYS.TOOLTIP_MOLECULE_SIZE) as number) ?? 400;
-  }
-
   private getTooltipProperties(): string[] {
     const propStr = (this.config.get(CONFIG_KEYS.TOOLTIP_PROPERTIES) as string) ?? '';
     if (!propStr.trim()) return [];
@@ -641,112 +628,53 @@ export class MoleculeView extends BasesView {
     const entry = this.entryMap.get(card);
     if (!entry) return;
 
-    const info = this.cardInfos.find((i) => i.entry === entry);
-    if (!info || !info.molStr.trim()) return;
-
-    const molPropId = this.config.getAsPropertyId(CONFIG_KEYS.MOLECULE_PROPERTY);
-    if (!molPropId) return;
-
-    const tooltipSize = this.getTooltipMoleculeSize();
     const tooltipProps = this.getTooltipProperties();
-
-    let rdkit = this.rdkitRef;
-    if (!rdkit) {
-      try {
-        rdkit = await getRDKit(this.plugin);
-        this.rdkitRef = rdkit;
-      } catch {
-        return;
-      }
-    }
-
-    const cacheKey = `${this.baseCacheKey(info.molStr)}||size=${tooltipSize}`;
-    let svg = this.svgCache.get(cacheKey);
-
-    if (!svg) {
-      let mol = null;
-      let renderMol = null;
-      try {
-        mol = rdkit?.get_mol(info.molStr);
-        if (!mol || !mol.is_valid()) return;
-
-        if (!this.plugin.settings.useCoords) {
-          mol.set_new_coords();
-        }
-
-        if (this.plugin.settings.removeHs) {
-          const molblockNoHs = mol.remove_hs();
-          renderMol = rdkit?.get_mol(molblockNoHs);
-          if (!renderMol || !renderMol.is_valid()) return;
-        }
-
-        svg = (renderMol ?? mol).get_svg_with_highlights(this.getDrawDetails());
-        if (svg) this.svgCache.set(cacheKey, svg);
-      } catch {
-        return;
-      } finally {
-        if (renderMol) renderMol.delete();
-        if (mol) mol.delete();
-      }
-    }
-
-    if (!svg) return;
 
     const fm = this.plugin.app.metadataCache.getFileCache(entry.file)?.frontmatter as
       | Record<string, unknown>
       | undefined;
 
-    // Build tooltip content via DOM API
-    const svgWrapper = document.createElement('div');
-    svgWrapper.className = 'mol-tooltip-svg';
-    svgWrapper.style.width = `${tooltipSize}px`;
-    svgWrapper.style.height = `${tooltipSize}px`;
-    setSvgContent(svgWrapper, svg);
+    if (!fm || Object.keys(fm).length === 0) return;
 
-    const children: Node[] = [svgWrapper];
+    const keys =
+      tooltipProps.length > 0
+        ? tooltipProps.filter((k) => k in fm)
+        : Object.keys(fm).filter((k) => k !== 'position' && k !== 'molblock');
 
-    if (fm && Object.keys(fm).length > 0) {
-      const keys =
-        tooltipProps.length > 0
-          ? tooltipProps.filter((k) => k in fm)
-          : Object.keys(fm).filter((k) => k !== 'position');
+    if (keys.length === 0) return;
 
-      if (keys.length > 0) {
-        const propsEl = document.createElement('div');
-        propsEl.className = 'mol-tooltip-props';
-        for (const key of keys) {
-          const val = fm[key];
-          if (val != null) {
-            const propEl = document.createElement('div');
-            propEl.className = 'mol-tooltip-prop';
-            const keySpan = document.createElement('span');
-            keySpan.className = 'mol-tooltip-prop-key';
-            keySpan.textContent = `${key}:`;
-            const valSpan = document.createElement('span');
-            valSpan.className = 'mol-tooltip-prop-value';
-            valSpan.textContent = typeof val === 'string' ? val : JSON.stringify(val);
-            propEl.appendChild(keySpan);
-            propEl.appendChild(valSpan);
-            propsEl.appendChild(propEl);
-          }
-        }
-        children.push(propsEl);
+    const propsEl = document.createElement('div');
+    propsEl.className = 'mol-tooltip-props';
+    for (const key of keys) {
+      const val = fm[key];
+      if (val != null) {
+        const propEl = document.createElement('div');
+        propEl.className = 'mol-tooltip-prop';
+        const keySpan = document.createElement('span');
+        keySpan.className = 'mol-tooltip-prop-key';
+        keySpan.textContent = `${key}:`;
+        const valSpan = document.createElement('span');
+        valSpan.className = 'mol-tooltip-prop-value';
+        valSpan.textContent = typeof val === 'string' ? val : JSON.stringify(val);
+        propEl.appendChild(keySpan);
+        propEl.appendChild(valSpan);
+        propsEl.appendChild(propEl);
       }
     }
 
-    this.tooltipEl.replaceChildren(...children);
-    const hasProps = children.length > 1;
+    this.tooltipEl.replaceChildren(propsEl);
 
     const cardRect = card.getBoundingClientRect();
     const containerRect = this.containerEl.getBoundingClientRect();
     const tooltipRect = this.tooltipEl.getBoundingClientRect();
 
-    const tooltipHeight = tooltipRect.height || tooltipSize + (hasProps ? 150 : 0);
+    const tooltipWidth = tooltipRect.width;
+    const tooltipHeight = tooltipRect.height;
 
     const spaceAbove = cardRect.top - containerRect.top;
     const spaceBelow = containerRect.height - (cardRect.bottom - containerRect.top);
 
-    let left = cardRect.left - containerRect.left + cardRect.width / 2 - tooltipSize / 2;
+    let left = cardRect.left - containerRect.left + cardRect.width / 2 - tooltipWidth / 2;
     let top: number;
 
     if (spaceAbove >= tooltipHeight + 8) {
@@ -758,7 +686,7 @@ export class MoleculeView extends BasesView {
     }
 
     if (left < 8) left = 8;
-    if (left + tooltipSize > containerRect.width) left = containerRect.width - tooltipSize - 8;
+    if (left + tooltipWidth > containerRect.width) left = containerRect.width - tooltipWidth - 8;
     if (top < 8) top = 8;
     if (top + tooltipHeight > containerRect.height) top = containerRect.height - tooltipHeight - 8;
 
