@@ -9,6 +9,7 @@ import {
   uniquePath,
 } from './import-utils';
 import type Mols2BasesPlugin from './main';
+import { INTERNAL_KEYS } from './types';
 
 const BATCH_SIZE = 50;
 
@@ -125,7 +126,7 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
       // Build frontmatter
       const frontmatter: Record<string, string> = {};
       frontmatter.smiles = row[smilesHeader];
-      frontmatter._mols2bases = `[[${baseName}.base]]`;
+      frontmatter[INTERNAL_KEYS.LINK] = `[[${baseName}.base]]`;
 
       for (const [key, value] of Object.entries(row)) {
         if (key === smilesHeader) continue;

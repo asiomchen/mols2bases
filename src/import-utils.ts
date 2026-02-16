@@ -46,14 +46,14 @@ export function buildYaml(props: Record<string, string>): string {
   return `${lines.join('\n')}\n`;
 }
 
-export function buildBaseFile(baseName: string): string {
+export function buildBaseFile(baseName: string, moleculeProperty = 'note.smiles'): string {
   return `filters:
   and:
     - file.hasLink("${baseName}")
 views:
   - type: "molecules"
     name: "Molecules"
-    moleculeProperty: note.smiles
+    moleculeProperty: ${moleculeProperty}
   - type: "table"
     name: "Table"
 `;

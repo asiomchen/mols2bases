@@ -3,7 +3,7 @@ import type { BasesAllOptions } from 'obsidian';
 import { type BasesEntry, BasesView, type BasesViewConfig, type QueryController } from 'obsidian';
 import type Mols2BasesPlugin from './main';
 import { getRDKit, type RDKitModule, type RDKitMol } from './rdkit-loader';
-import { CONFIG_KEYS, VIEW_TYPE_MOLECULES } from './types';
+import { CONFIG_KEYS, INTERNAL_PREFIX, VIEW_TYPE_MOLECULES } from './types';
 
 interface SubstructMatch {
   atoms: number[];
@@ -413,6 +413,7 @@ export class MoleculeView extends BasesView {
           | undefined;
         if (fm) {
           for (const key of Object.keys(fm)) {
+            if (key.startsWith(INTERNAL_PREFIX)) continue;
             const val = fm[key];
             const valStr = typeof val === 'string' ? val : JSON.stringify(val);
             if (val != null && valStr.toLowerCase().includes(lowerQuery)) {
@@ -639,7 +640,7 @@ export class MoleculeView extends BasesView {
     const keys =
       tooltipProps.length > 0
         ? tooltipProps.filter((k) => k in fm)
-        : Object.keys(fm).filter((k) => k !== 'position' && k !== 'molblock');
+        : Object.keys(fm).filter((k) => k !== 'position' && !k.startsWith(INTERNAL_PREFIX));
 
     if (keys.length === 0) return;
 

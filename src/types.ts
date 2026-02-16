@@ -39,3 +39,10 @@ export const CONFIG_KEYS = {
   TOOLTIP_ENABLED: 'tooltipEnabled',
   TOOLTIP_PROPERTIES: 'tooltipProperties',
 } as const;
+
+export const INTERNAL_PREFIX = '_m2b_';
+export const INTERNAL_KEYS = {
+  MOLBLOCK: '_m2b_molblock',
+  LINK: '_m2b_link',
+  SMILES: '_m2b_smiles',
+} as const;
