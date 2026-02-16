@@ -37,7 +37,7 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
       rdkit = await getRDKit(plugin);
     } catch (e) {
       notice.hide();
-      new Notice(`Failed to load RDKit: ${e}`);
+      new Notice(`Failed to load RDKit: ${String(e)}`);
       return;
     }
 
@@ -114,6 +114,6 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     new Notice(`Imported ${molecules.length} molecules.`);
   } catch (e) {
     notice.hide();
-    new Notice(`Import failed: ${e}`);
+    new Notice(`Import failed: ${String(e)}`);
   }
 }

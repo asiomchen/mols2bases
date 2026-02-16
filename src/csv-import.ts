@@ -151,6 +151,6 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     new Notice(`Imported ${rows.length} molecules from CSV.`);
   } catch (e) {
     notice.hide();
-    new Notice(`CSV import failed: ${e}`);
+    new Notice(`CSV import failed: ${String(e)}`);
   }
 }

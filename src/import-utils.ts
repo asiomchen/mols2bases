@@ -1,3 +1,4 @@
+/* global document, setTimeout, FileReader */
 import type { App } from 'obsidian';
 
 export function pickFile(accept: string): Promise<File | null> {
@@ -24,7 +25,7 @@ export function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'));
     reader.readAsText(file);
   });
 }
