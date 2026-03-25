@@ -79,7 +79,16 @@ Global settings are available under **Settings > Mols2Bases**:
 
 ## Installation
 
-Copy `main.js`, `manifest.json`, `styles.css` into `.obsidian/plugins/mols2bases/` in your vault.
+> **Note:** Mols2Bases is currently under review for the Obsidian Community Plugins directory. In the meantime, install it manually using the steps below.
+
+### Manual install from release
+
+1. Go to the [latest release](https://github.com/asiomchen/mols2bases/releases/latest) and download `main.js`, `manifest.json`, and `styles.css`.
+2. In your vault, create the folder `.obsidian/plugins/mols2bases/` if it doesn't exist.
+3. Copy the three downloaded files into that folder.
+4. Open Obsidian, go to **Settings → Community plugins**, and enable **Mols2Bases**.
+
+Alternatively, you can use the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin to install directly from this repository and receive automatic updates.
 
 ### RDKit WASM
 
