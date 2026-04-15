@@ -62,7 +62,9 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     // Create notes for each molecule in batches
     for (let i = 0; i < molecules.length; i++) {
       const mol = molecules[i];
+      const molblockTitle = mol.molblock.split('\n', 1)[0].trim();
       const name =
+        molblockTitle ||
         mol.properties.Name ||
         mol.properties.name ||
         mol.properties.COMMON_NAME ||
