@@ -6,18 +6,27 @@ import type { ParsedMolecule } from './types';
  * with property fields between M  END and $$$$.
  */
 export function parseSdf(content: string): ParsedMolecule[] {
-  const records = content.split('$$$$');
+  const records = content.replace(/\r\n/g, '\n').split('$$$$');
   const molecules: ParsedMolecule[] = [];
 
-  for (const record of records) {
-    const trimmed = record.trim();
-    if (!trimmed) continue;
+  for (let i = 0; i < records.length; i++) {
+    // Strip exactly one leading newline only for records after the first.
+    // Records 1+ start with the newline that terminated the preceding $$$$ line,
+    // which is not part of the molblock. The first record has no such prefix —
+    // if it starts with \n that IS the blank title line and must be kept.
+    let normalized = records[i];
+    if (i > 0) {
+      if (normalized.startsWith('\r\n')) normalized = normalized.slice(2);
+      else if (normalized.startsWith('\n')) normalized = normalized.slice(1);
+    }
+    normalized = normalized.replace(/\s+$/, '');
+    if (!normalized.trim()) continue;
 
-    const endIdx = trimmed.indexOf('M  END');
+    const endIdx = normalized.indexOf('M  END');
     if (endIdx === -1) continue;
 
-    const molblock = trimmed.substring(0, endIdx + 'M  END'.length);
-    const propsSection = trimmed.substring(endIdx + 'M  END'.length);
+    const molblock = normalized.substring(0, endIdx + 'M  END'.length);
+    const propsSection = normalized.substring(endIdx + 'M  END'.length);
     const properties = parseProperties(propsSection);
 
     molecules.push({ molblock, properties });

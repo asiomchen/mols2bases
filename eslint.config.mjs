@@ -33,6 +33,14 @@ export default tseslint.config(
 			],
 		},
 	},
+	{
+		files: ['src/__tests__/**/*.ts'],
+		languageOptions: {
+			globals: {
+				...globals.node,
+			},
+		},
+	},
 	globalIgnores([
 		"node_modules",
 		"dist",
