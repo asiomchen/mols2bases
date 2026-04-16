@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-import { parseSdf } from '../sdf-parser';
+import { parseSdf } from '../src/sdf-parser';
 
-const SDF_PATH = join(__dirname, '..', '..', 'missing_names.sdf');
+const SDF_PATH = join(__dirname, 'data', 'missing_names.sdf');
 const sdfContent = readFileSync(SDF_PATH, 'utf-8');
 
-const NO_NAME_PATH = join(__dirname, '..', '..', 'no_name_at_all.sdf');
+const NO_NAME_PATH = join(__dirname, 'data', 'no_name_at_all.sdf');
 const noNameContent = readFileSync(NO_NAME_PATH, 'utf-8');
 
 describe('parseSdf – missing_names.sdf', () => {
@@ -73,6 +73,30 @@ describe('parseSdf – no_name_at_all.sdf', () => {
   it('neither molecule has properties', () => {
     for (const mol of mols) {
       expect(Object.keys(mol.properties)).toHaveLength(0);
+    }
+  });
+});
+
+const DUP_PATH = join(__dirname, 'data', 'dup_names.sdf');
+const dupContent = readFileSync(DUP_PATH, 'utf-8');
+
+describe('parseSdf – dup_names.sdf', () => {
+  const mols = parseSdf(dupContent);
+
+  it('parses exactly 2 molecules', () => {
+    expect(mols).toHaveLength(2);
+  });
+
+  it('both molecules have molblock title "compound"', () => {
+    for (const mol of mols) {
+      const firstLine = mol.molblock.split('\n')[0];
+      expect(firstLine).toBe('compound');
+    }
+  });
+
+  it('both molecules contain M  END', () => {
+    for (const mol of mols) {
+      expect(mol.molblock).toContain('M  END');
     }
   });
 });

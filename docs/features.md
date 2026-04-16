@@ -27,12 +27,12 @@
 ## CSV Import
 
 - Command to import CSV files via browser file picker
-- Auto-detects `smiles` column (case-insensitive)
-- Creates one note per row with YAML frontmatter
+- Creates one note per row with YAML frontmatter; notes are named `row_1`, `row_2`, etc.
 - All CSV columns added as frontmatter properties (keys sanitized to lowercase with non-alphanumeric characters replaced by `_`)
 - Generates a `.base` file scoped to the import folder
 - Handles quoted fields and escaped double quotes per RFC 4180
 - No RDKit dependency — SMILES are taken directly from the CSV
+- Select the molecule property in the view options after import
 
 ## Rendering Settings
 
