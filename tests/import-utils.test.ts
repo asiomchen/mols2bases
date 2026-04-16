@@ -5,6 +5,8 @@ import { buildYaml, uniquePath } from '../src/import-utils';
 const HEADER_LINE = ' -OEChem-04032607062D';
 const NAMED_MOLBLOCK = `with_name\n${HEADER_LINE}\n\nM  END`;
 const BLANK_TITLE_MOLBLOCK = `\n${HEADER_LINE}\n\nM  END`;
+const SPACE_TITLE_MOLBLOCK = ` \n${HEADER_LINE}\n\nM  END`;
+const MULTI_SPACE_TITLE_MOLBLOCK = `   \n${HEADER_LINE}\n\nM  END`;
 
 describe('buildYaml – block scalar headers', () => {
   it('named molblock uses plain | header', () => {
@@ -16,6 +18,27 @@ describe('buildYaml – block scalar headers', () => {
   it('blank-title molblock uses |2- header', () => {
     const yaml = buildYaml({ _m2b_molblock: BLANK_TITLE_MOLBLOCK });
     expect(yaml).toMatch(/^_m2b_molblock: \|2-$/m);
+  });
+
+  it('space-only title molblock uses |2- header', () => {
+    // no_first_name.sdf: title line is a single space, not a blank line
+    const yaml = buildYaml({ _m2b_molblock: SPACE_TITLE_MOLBLOCK });
+    expect(yaml).toMatch(/^_m2b_molblock: \|2-$/m);
+  });
+
+  it('multi-space title molblock uses |2- header', () => {
+    const yaml = buildYaml({ _m2b_molblock: MULTI_SPACE_TITLE_MOLBLOCK });
+    expect(yaml).toMatch(/^_m2b_molblock: \|2-$/m);
+  });
+
+  it('multi-space title molblock preserves title line and header line', () => {
+    const yaml = buildYaml({ _m2b_molblock: MULTI_SPACE_TITLE_MOLBLOCK });
+    const lines = yaml.split('\n');
+    const headerIdx = lines.findIndex((l) => l.startsWith('_m2b_molblock:'));
+    // Line after header: 2-space YAML indent + 3 spaces of title = 5 spaces
+    expect(lines[headerIdx + 1]).toBe('     ');
+    // Line after that: 2-space YAML indent + the OEChem header line
+    expect(lines[headerIdx + 2]).toBe(`  ${HEADER_LINE}`);
   });
 
   it('|2- block scalar preserves the leading blank line', () => {
