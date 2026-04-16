@@ -34,11 +34,14 @@ export function buildYaml(props: Record<string, string>): string {
   const lines: string[] = [];
   for (const [key, value] of Object.entries(props)) {
     if (value.includes('\n')) {
-      // When the value starts with a newline (e.g. a MOL-block with a blank title
-      // line), the YAML parser cannot auto-detect indentation from the first line.
-      // Use an explicit indentation indicator (2) and strip chomping (-) so the
-      // leading blank line is preserved faithfully.
-      const header = value.startsWith('\n') ? '|2-' : '|';
+      // When the first line of the value is blank or whitespace-only (e.g. a
+      // MOL-block whose title line is empty or a single space), the YAML parser
+      // cannot reliably auto-detect indentation — it skips leading blank lines and
+      // picks up the indent from the first "real" line, which already has leading
+      // spaces, causing it to strip one extra space from every content line on
+      // re-read. Use an explicit indentation indicator (2) with strip chomping (-).
+      const firstLine = value.split('\n')[0];
+      const header = firstLine.trim() === '' ? '|2-' : '|';
       lines.push(`${key}: ${header}`);
       for (const line of value.split('\n')) {
         lines.push(`  ${line}`);
