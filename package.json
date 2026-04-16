@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
-    "lint": "eslint src/",
-    "lint:fix": "eslint --fix src/",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint --fix src/ tests/",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
     "test": "vitest run",

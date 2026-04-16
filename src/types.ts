@@ -16,7 +16,6 @@ export interface Mols2BasesSettings {
   bondLineWidth: number;
   transparentBg: boolean;
   comicMode: boolean;
-  csvSmilesField: string;
 }
 
 export const DEFAULT_SETTINGS: Mols2BasesSettings = {
@@ -30,7 +29,6 @@ export const DEFAULT_SETTINGS: Mols2BasesSettings = {
   bondLineWidth: 1.0,
   transparentBg: false,
   comicMode: false,
-  csvSmilesField: 'smiles',
 };
 
 export const CONFIG_KEYS = {

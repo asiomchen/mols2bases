@@ -84,18 +84,13 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
 
   try {
     const content = await readFileAsText(file);
-    const { headers, rows } = parseCsv(content);
+    const { rows } = parseCsv(content);
 
     if (rows.length === 0) {
       notice.hide();
       new Notice('No data rows found in the CSV file.');
       return;
     }
-
-    // Auto-detect SMILES column (case-insensitive)
-    const smilesHeader = headers.find(
-      (h) => h.toLowerCase() === plugin.settings.csvSmilesField.toLowerCase(),
-    );
 
     notice.setMessage(`Importing ${rows.length} rows...`);
 
@@ -108,38 +103,19 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
     }
 
     // Create .base file early so the view populates as notes arrive
-    const baseContent = buildBaseFile(
-      `${folderPath}.base`,
-      smilesHeader ? `note.${plugin.settings.csvSmilesField}` : undefined,
-    );
+    const baseContent = buildBaseFile(`${folderPath}.base`);
     const basePath = normalizePath(`${folderPath}.base`);
     const baseFile = await plugin.app.vault.create(basePath, baseContent);
     await plugin.app.workspace.getLeaf(false).openFile(baseFile);
 
-    // Show warning if no SMILES column was found
-    if (!smilesHeader) {
-      new Notice(
-        `No "${plugin.settings.csvSmilesField}" column found — select the molecule property in the view options.`,
-        5000,
-      );
-    }
-
-    // Find first non-smiles header for note naming
-    const nameHeader = headers.find((h) => h !== smilesHeader);
-
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const name = (nameHeader && row[nameHeader]?.trim()) || `row_${i + 1}`;
+      const name = `row_${i + 1}`;
 
-      // Build frontmatter
       const frontmatter: Record<string, string> = {};
-      if (smilesHeader) {
-        frontmatter[smilesHeader] = row[smilesHeader];
-      }
       frontmatter[INTERNAL_KEYS.LINK] = `[[${baseName}.base]]`;
 
       for (const [key, value] of Object.entries(row)) {
-        if (smilesHeader && key === smilesHeader) continue;
         if (!frontmatter[key]) {
           frontmatter[key] = value;
         }
@@ -150,7 +126,6 @@ export async function importCsv(plugin: Mols2BasesPlugin): Promise<void> {
       const finalPath = await uniquePath(plugin.app, notePath);
       await plugin.app.vault.create(finalPath, `---\n${yaml}---\n`);
 
-      // Yield to the event loop after each batch
       if ((i + 1) % BATCH_SIZE === 0) {
         notice.setMessage(`Importing rows... (${i + 1} / ${rows.length})`);
         await sleep(0);
