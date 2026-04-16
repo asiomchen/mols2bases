@@ -14,9 +14,9 @@ describe('parseCsv – basic parsing', () => {
     expect(rows).toHaveLength(1);
   });
 
-  it('returns single empty header for empty input', () => {
+  it('returns empty headers and rows for empty input', () => {
     const { headers, rows } = parseCsv('');
-    expect(headers).toEqual(['']);
+    expect(headers).toEqual([]);
     expect(rows).toHaveLength(0);
   });
 });

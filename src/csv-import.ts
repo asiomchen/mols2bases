@@ -15,7 +15,7 @@ const BATCH_SIZE = 50;
 
 export function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/);
-  if (lines.length === 0) return { headers: [], rows: [] };
+  if (lines.length === 0 || lines[0].trim() === '') return { headers: [], rows: [] };
 
   const headers = parseCsvRow(lines[0]);
   const rows: Record<string, string>[] = [];
