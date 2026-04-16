@@ -76,3 +76,27 @@ describe('parseSdf – no_name_at_all.sdf', () => {
     }
   });
 });
+
+const DUP_PATH = join(__dirname, 'data', 'dup_names.sdf');
+const dupContent = readFileSync(DUP_PATH, 'utf-8');
+
+describe('parseSdf – dup_names.sdf', () => {
+  const mols = parseSdf(dupContent);
+
+  it('parses exactly 2 molecules', () => {
+    expect(mols).toHaveLength(2);
+  });
+
+  it('both molecules have molblock title "compound"', () => {
+    for (const mol of mols) {
+      const firstLine = mol.molblock.split('\n')[0];
+      expect(firstLine).toBe('compound');
+    }
+  });
+
+  it('both molecules contain M  END', () => {
+    for (const mol of mols) {
+      expect(mol.molblock).toContain('M  END');
+    }
+  });
+});
