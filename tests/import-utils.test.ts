@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildYaml } from '../src/import-utils';
+import { buildYaml, uniquePath } from '../src/import-utils';
 
 // Minimal molblock fragments used across tests
 const HEADER_LINE = ' -OEChem-04032607062D';
@@ -76,5 +76,28 @@ describe('buildYaml – frontmatter round-trip for missing_names.sdf molecules',
     });
     expect(yaml).toContain('_m2b_molblock: |');
     expect(yaml).not.toContain('|2-');
+  });
+});
+
+describe('uniquePath – deduplication', () => {
+  const mockApp = (existing: string[]) =>
+    ({ vault: { adapter: { exists: async (p: string) => existing.includes(p) } } }) as never;
+
+  it('returns the path unchanged when it does not exist', async () => {
+    const result = await uniquePath(mockApp([]), 'folder/mol.md');
+    expect(result).toBe('folder/mol.md');
+  });
+
+  it('appends _1 when the base path is taken', async () => {
+    const result = await uniquePath(mockApp(['folder/mol.md']), 'folder/mol.md');
+    expect(result).toBe('folder/mol_1.md');
+  });
+
+  it('increments past _1 when both base and _1 are taken', async () => {
+    const result = await uniquePath(
+      mockApp(['folder/mol.md', 'folder/mol_1.md']),
+      'folder/mol.md',
+    );
+    expect(result).toBe('folder/mol_2.md');
   });
 });
