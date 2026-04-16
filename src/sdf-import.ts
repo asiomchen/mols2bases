@@ -63,14 +63,7 @@ export async function importSdf(plugin: Mols2BasesPlugin): Promise<void> {
     for (let i = 0; i < molecules.length; i++) {
       const mol = molecules[i];
       const molblockTitle = mol.molblock.split('\n', 1)[0].trim();
-      const name =
-        molblockTitle ||
-        mol.properties.Name ||
-        mol.properties.name ||
-        mol.properties.COMMON_NAME ||
-        mol.properties.ID ||
-        mol.properties.id ||
-        `molecule_${i + 1}`;
+      const name = molblockTitle || `molecule_${i + 1}`;
 
       // Convert MOL block to SMILES via RDKit
       let smiles = '';
