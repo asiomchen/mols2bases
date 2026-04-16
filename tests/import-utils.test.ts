@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildYaml } from '../import-utils';
+import { buildYaml } from '../src/import-utils';
 
 // Minimal molblock fragments used across tests
 const HEADER_LINE = ' -OEChem-04032607062D';

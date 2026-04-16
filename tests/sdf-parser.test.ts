@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
-import { parseSdf } from '../sdf-parser';
+import { parseSdf } from '../src/sdf-parser';
 
-const SDF_PATH = join(__dirname, '..', '..', 'missing_names.sdf');
+const SDF_PATH = join(__dirname, 'data', 'missing_names.sdf');
 const sdfContent = readFileSync(SDF_PATH, 'utf-8');
 
-const NO_NAME_PATH = join(__dirname, '..', '..', 'no_name_at_all.sdf');
+const NO_NAME_PATH = join(__dirname, 'data', 'no_name_at_all.sdf');
 const noNameContent = readFileSync(NO_NAME_PATH, 'utf-8');
 
 describe('parseSdf – missing_names.sdf', () => {
